@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Login Test</h1>
+    
+    <div class="form-group">
+        <label for="personal_id">Personal ID:</label>
+        <input type="text" id="personal_id" value="ADMIN001">
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="password">
+    </div>
+    
+    <button onclick="testLogin()">Test Login</button>
+    
+    <div class="result" id="result">
+        <p>Results will appear here...</p>
+    </div>
+    
+    <script>
+        async function testLogin() {
+            const personalId = document.getElementById('personal_id').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<p>Testing login...</p>';
+            
+            try {
+                // First, try the API endpoint
+                try {
+                    const apiResponse = await fetch('http://localhost:8000/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            personal_id: personalId,
+                            password: password
+                        })
+                    });
+                    
+                    const apiData = await apiResponse.text();
+                    
+                    resultDiv.innerHTML = `
+                        <h3>API Login Response</h3>
+                        <p>Status: ${apiResponse.status} ${apiResponse.statusText}</p>
+                        <pre>${apiData}</pre>
+                    `;
+                } catch (apiError) {
+                    resultDiv.innerHTML = `
+                        <h3>API Login Error</h3>
+                        <p>${apiError.message}</p>
+                    `;
+                }
+                
+                // Try the direct login endpoint
+                try {
+                    const directResponse = await fetch('http://localhost:8000/direct-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            personal_id: personalId,
+                            password: password
+                        })
+                    });
+                    
+                    const directData = await directResponse.json();
+                    
+                    resultDiv.innerHTML += `
+                        <h3>Direct Login Response</h3>
+                        <p>Status: ${directResponse.status} ${directResponse.statusText}</p>
+                        <pre>${JSON.stringify(directData, null, 2)}</pre>
+                    `;
+                } catch (directError) {
+                    resultDiv.innerHTML += `
+                        <h3>Direct Login Error</h3>
+                        <p>${directError.message}</p>
+                    `;
+                }
+                
+                // Try the API test endpoint
+                try {
+                    const apiTestResponse = await fetch('http://localhost:8000/api/test');
+                    const apiTestData = await apiTestResponse.json();
+                    
+                    resultDiv.innerHTML += `
+                        <h3>API Test Endpoint Response</h3>
+                        <pre>${JSON.stringify(apiTestData, null, 2)}</pre>
+                    `;
+                } catch (apiTestError) {
+                    resultDiv.innerHTML += `
+                        <h3>API Test Error</h3>
+                        <p>${apiTestError.message}</p>
+                    `;
+                }
+                
+                // Try the users endpoint to see available users
+                try {
+                    const usersResponse = await fetch('http://localhost:8000/users');
+                    const usersData = await usersResponse.json();
+                    
+                    resultDiv.innerHTML += `
+                        <h3>Available Users</h3>
+                        <pre>${JSON.stringify(usersData, null, 2)}</pre>
+                    `;
+                } catch (usersError) {
+                    resultDiv.innerHTML += `
+                        <h3>Users Endpoint Error</h3>
+                        <p>${usersError.message}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <h3>General Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

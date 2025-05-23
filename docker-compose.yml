@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  # MariaDB Service
+  db:
+    image: mariadb:10.11
+    platform: linux/arm64  # Optimized for Apple M1
+    restart: always
+    environment:
+      MYSQL_DATABASE: timetjek
+      MYSQL_ROOT_PASSWORD: timetjek
+      MYSQL_PASSWORD: timetjek
+      MYSQL_USER: timetjek
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # PHP Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    platform: linux/arm64  # Optimized for Apple M1
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=timetjek
+      - DB_USERNAME=timetjek
+      - DB_PASSWORD=timetjek
+      - APP_KEY=base64:WYvDXwLSzJzYbNuRKrCDfXKFPEUDh5HYRnhTZQF9q8c=
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:8000
+
+  # Vue Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    platform: linux/arm64  # Optimized for Apple M1
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+      
+
+
+volumes:
+  mariadb_data:
