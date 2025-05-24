@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="500" viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background shapes -->
+  <circle cx="300" cy="250" r="200" fill="#E8F5E9" opacity="0.5"/>
+  <circle cx="350" cy="200" r="150" fill="#C8E6C9" opacity="0.5"/>
+  
+  <!-- Calendar base -->
+  <rect x="150" y="100" width="300" height="300" rx="10" fill="white" stroke="#1C3A2A" stroke-width="4"/>
+  
+  <!-- Calendar header -->
+  <rect x="150" y="100" width="300" height="50" rx="10" fill="#4ADE80"/>
+  <rect x="150" y="140" width="300" height="10" fill="#1C3A2A"/>
+  
+  <!-- Calendar days header -->
+  <rect x="150" y="150" width="300" height="30" fill="#E8F5E9"/>
+  
+  <!-- Calendar grid -->
+  <line x1="150" y1="180" x2="450" y2="180" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="150" y1="230" x2="450" y2="230" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="150" y1="280" x2="450" y2="280" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="150" y1="330" x2="450" y2="330" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <line x1="200" y1="150" x2="200" y2="400" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="250" y1="150" x2="250" y2="400" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="300" y1="150" x2="300" y2="400" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="350" y1="150" x2="350" y2="400" stroke="#E0E0E0" stroke-width="2"/>
+  <line x1="400" y1="150" x2="400" y2="400" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <!-- Calendar day labels -->
+  <text x="175" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">M</text>
+  <text x="225" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">T</text>
+  <text x="275" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">W</text>
+  <text x="325" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">T</text>
+  <text x="375" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">F</text>
+  <text x="425" y="170" font-family="Arial" font-size="12" fill="#1C3A2A" text-anchor="middle">S</text>
+  
+  <!-- Calendar numbers -->
+  <text x="175" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">1</text>
+  <text x="225" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">2</text>
+  <text x="275" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">3</text>
+  <text x="325" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">4</text>
+  <text x="375" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">5</text>
+  <text x="425" y="205" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">6</text>
+  
+  <text x="175" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">7</text>
+  <text x="225" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">8</text>
+  <text x="275" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">9</text>
+  <text x="325" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">10</text>
+  <text x="375" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">11</text>
+  <text x="425" y="255" font-family="Arial" font-size="14" fill="#333333" text-anchor="middle">12</text>
+  
+  <!-- Highlighted day with checkmark -->
+  <rect x="300" y="230" width="50" height="50" fill="#4ADE80" opacity="0.5" rx="4"/>
+  <path d="M315 255 L325 265 L335 245" stroke="#1C3A2A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Clock element -->
+  <circle cx="450" cy="350" r="50" fill="#4ADE80" opacity="0.7"/>
+  <circle cx="450" cy="350" r="45" fill="white"/>
+  <line x1="450" y1="350" x2="450" y2="320" stroke="#1C3A2A" stroke-width="3" stroke-linecap="round"/>
+  <line x1="450" y1="350" x2="470" y2="350" stroke="#1C3A2A" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="450" cy="350" r="5" fill="#1C3A2A"/>
+  
+  <!-- Month label -->
+  <text x="300" y="130" font-family="Arial" font-size="18" fill="white" text-anchor="middle" font-weight="bold">MAY 2025</text>
+  
+  <!-- Person silhouette -->
+  <circle cx="150" cy="350" r="40" fill="#4ADE80" opacity="0.7"/>
+  <path d="M150 320 C140 320 130 330 130 340 C130 350 140 360 150 360 C160 360 170 350 170 340 C170 330 160 320 150 320 Z" fill="#1C3A2A"/>
+  <path d="M120 390 C120 370 135 360 150 360 C165 360 180 370 180 390" stroke="#1C3A2A" stroke-width="3" fill="none"/>
+</svg>

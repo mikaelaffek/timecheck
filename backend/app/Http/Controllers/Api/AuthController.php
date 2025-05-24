@@ -22,7 +22,8 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('personal_id', $request->personal_id)->first();
+        // Make personal_id case-insensitive by using whereRaw with UPPER function
+        $user = User::whereRaw('UPPER(personal_id) = ?', [strtoupper($request->personal_id)])->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([

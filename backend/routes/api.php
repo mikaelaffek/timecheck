@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\OvertimeRuleController;
 use App\Http\Controllers\Api\ReportController;
@@ -26,6 +27,35 @@ Route::get('/test', function() {
         'status' => 'success',
         'message' => 'API is working!',
         'time' => now()->toDateTimeString()
+    ]);
+});
+
+// Test endpoint for time registrations
+Route::get('/test-time-registrations', function() {
+    // Get all time registrations
+    $timeRegistrations = \App\Models\TimeRegistration::orderBy('date', 'desc')
+        ->orderBy('clock_in', 'desc')
+        ->limit(5)
+        ->get();
+    
+    return response()->json([
+        'status' => 'success',
+        'count' => $timeRegistrations->count(),
+        'data' => $timeRegistrations
+    ]);
+});
+
+// Test endpoint for schedules
+Route::get('/test-schedules', function() {
+    // Get all schedules
+    $schedules = \App\Models\Schedule::orderBy('date', 'desc')
+        ->limit(5)
+        ->get();
+    
+    return response()->json([
+        'status' => 'success',
+        'count' => $schedules->count(),
+        'data' => $schedules
     ]);
 });
 
@@ -100,6 +130,9 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Locations
     Route::apiResource('locations', LocationController::class);
+    
+    // Departments
+    Route::apiResource('departments', DepartmentController::class);
     Route::get('/locations/nearby', [LocationController::class, 'getNearby']);
     
     // Users (admin only)

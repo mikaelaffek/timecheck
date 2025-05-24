@@ -40,7 +40,8 @@ Route::post('/direct-login', function (Request $request) {
         'password' => 'required|string',
     ]);
 
-    $user = User::where('personal_id', $request->personal_id)->first();
+    // Make personal_id case-insensitive by using whereRaw with UPPER function
+    $user = User::whereRaw('UPPER(personal_id) = ?', [strtoupper($request->personal_id)])->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
         return response()->json([
@@ -49,6 +50,7 @@ Route::post('/direct-login', function (Request $request) {
             'debug' => [
                 'personal_id_exists' => (bool)$user,
                 'personal_id_provided' => $request->personal_id,
+                'personal_id_uppercase' => strtoupper($request->personal_id),
                 'password_provided' => $request->password,
                 'password_hash' => $user ? $user->password : null
             ]

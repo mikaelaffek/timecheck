@@ -41,6 +41,7 @@ export const useAuthStore = defineStore('auth', {
         // Set the Authorization header for all future requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
+        console.log('Login successful, token set:', token)
         return true
       } catch (error) {
         console.error('Login failed:', error)

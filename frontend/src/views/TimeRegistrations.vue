@@ -1,5 +1,6 @@
 <template>
   <div>
+    <loading-overlay :show="loading" message="Loading time registrations..."></loading-overlay>
     <v-row>
       <v-col cols="12">
         <h1 class="text-h4 mb-4">Time Registrations</h1>
@@ -69,6 +70,17 @@
             </template>
             <template v-slot:item.total_hours="{ item }">
               {{ item.total_hours ? item.total_hours.toFixed(2) : '-' }}
+            </template>
+            <template v-slot:item.location="{ item }">
+              <span v-if="item.latitude && item.longitude">
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon small v-bind="attrs" v-on="on" color="primary">mdi-map-marker</v-icon>
+                  </template>
+                  <span>Lat: {{ item.latitude }}, Long: {{ item.longitude }}</span>
+                </v-tooltip>
+              </span>
+              <span v-else>-</span>
             </template>
             <template v-slot:item.actions="{ item }">
               <v-icon small class="mr-2" @click="editTimeRegistration(item)">
@@ -180,18 +192,110 @@
     <v-dialog v-model="mapDialog" max-width="800px">
       <v-card>
         <v-card-title>
-          <span class="text-h5">Location</span>
+          <span class="text-h5">Location Details</span>
         </v-card-title>
         <v-card-text>
           <div v-if="selectedLocation" class="mb-4">
-            <p><strong>Date:</strong> {{ formatDate(selectedLocation.date) }}</p>
-            <p><strong>Time:</strong> {{ formatTime(selectedLocation.clock_in) }}</p>
-            <p><strong>Coordinates:</strong> {{ selectedLocation.latitude }}, {{ selectedLocation.longitude }}</p>
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-list>
+                  <v-list-item>
+                    <v-list-item-icon>
+                      <v-icon>mdi-calendar</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Date</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatDate(selectedLocation.date) }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                  
+                  <v-list-item>
+                    <v-list-item-icon>
+                      <v-icon>mdi-clock-in</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Clock In</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatTime(selectedLocation.clock_in) }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                  
+                  <v-list-item v-if="selectedLocation.clock_out">
+                    <v-list-item-icon>
+                      <v-icon>mdi-clock-out</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Clock Out</v-list-item-title>
+                      <v-list-item-subtitle>{{ formatTime(selectedLocation.clock_out) }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-col>
+              
+              <v-col cols="12" md="6">
+                <v-list>
+                  <v-list-item>
+                    <v-list-item-icon>
+                      <v-icon>mdi-map-marker</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Coordinates</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <span class="font-weight-medium">Latitude:</span> {{ selectedLocation.latitude }}<br>
+                        <span class="font-weight-medium">Longitude:</span> {{ selectedLocation.longitude }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                  
+                  <v-list-item v-if="selectedLocation.notes">
+                    <v-list-item-icon>
+                      <v-icon>mdi-note-text</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Notes</v-list-item-title>
+                      <v-list-item-subtitle>{{ selectedLocation.notes }}</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-col>
+            </v-row>
           </div>
-          <div id="map" style="height: 400px; width: 100%;">
-            <!-- Map will be rendered here -->
-            <p class="text-center pa-4">Map would be displayed here with the location marker</p>
-          </div>
+          
+          <v-card class="mt-4">
+            <v-card-title class="subtitle-1">
+              <v-icon left>mdi-map</v-icon>
+              Location Map
+            </v-card-title>
+            <v-card-text>
+              <div id="map" style="height: 400px; width: 100%; border-radius: 4px; overflow: hidden;">
+                <v-sheet color="grey lighten-3" height="400" class="d-flex align-center justify-center">
+                  <div class="text-center">
+                    <v-icon size="64" color="primary">mdi-map-marker</v-icon>
+                    <div class="mt-2 text-body-1">
+                      <template v-if="selectedLocation && selectedLocation.latitude && selectedLocation.longitude">
+                        <strong>Latitude:</strong> {{ selectedLocation.latitude }}<br>
+                        <strong>Longitude:</strong> {{ selectedLocation.longitude }}
+                      </template>
+                      <template v-else>
+                        No location data available
+                      </template>
+                    </div>
+                    <div class="mt-4">
+                      <v-btn 
+                        v-if="selectedLocation && selectedLocation.latitude && selectedLocation.longitude"
+                        color="primary" 
+                        outlined
+                        :href="`https://www.google.com/maps?q=${selectedLocation.latitude},${selectedLocation.longitude}`"
+                        target="_blank"
+                      >
+                        <v-icon left>mdi-google-maps</v-icon>
+                        View in Google Maps
+                      </v-btn>
+                    </div>
+                  </div>
+                </v-sheet>
+              </div>
+            </v-card-text>
+          </v-card>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -207,6 +311,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import LoadingOverlay from '../components/LoadingOverlay.vue'
 
 interface TimeRegistration {
   id: number
@@ -232,6 +337,9 @@ interface EditedTimeRegistration {
 
 export default defineComponent({
   name: 'TimeRegistrations',
+  components: {
+    LoadingOverlay
+  },
   setup() {
     const loading = ref(false)
     const search = ref('')
@@ -261,6 +369,7 @@ export default defineComponent({
       { text: 'Clock Out', value: 'clock_out' },
       { text: 'Total Hours', value: 'total_hours' },
       { text: 'Status', value: 'status' },
+      { text: 'Location', value: 'location', sortable: false },
       { text: 'Actions', value: 'actions', sortable: false }
     ]
     
