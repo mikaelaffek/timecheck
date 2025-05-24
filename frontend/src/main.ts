@@ -12,6 +12,10 @@ import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
+// Material Design Icons
+import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import '@mdi/font/css/materialdesignicons.css'
+
 // Configure axios to use the backend URL
 axios.defaults.baseURL = 'http://localhost:8000'
 
@@ -68,6 +72,13 @@ initializeErrorHandlers()
 const vuetify = createVuetify({
   components,
   directives,
+  icons: {
+    defaultSet: 'mdi',
+    aliases,
+    sets: {
+      mdi,
+    },
+  },
   theme: {
     defaultTheme: 'light',
     themes: {
