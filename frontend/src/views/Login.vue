@@ -149,7 +149,7 @@ export default defineComponent({
 /* Left panel styling */
 .login-left-panel {
   flex: 1;
-  background: linear-gradient(135deg, #1C3A2A 0%, #0F2318 100%);
+  background-color: rgb(var(--v-theme-primary)) !important;
   display: flex;
   align-items: center;
   justify-content: center;
