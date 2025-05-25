@@ -107,6 +107,9 @@ export default defineComponent({
       passwordMatch: (v: string) => v === passwords.new_password || 'Passwords do not match'
     }
 
+    // Reference to the form
+    const form = ref(null)
+    
     const changePassword = async () => {
       loading.value = true
       error.value = ''
@@ -119,12 +122,27 @@ export default defineComponent({
           password_confirmation: passwords.confirm_password
         })
         
-        success.value = 'Password updated successfully'
+        // Show success message
+        success.value = 'Password updated successfully!'
         
         // Clear the form
         passwords.current_password = ''
         passwords.new_password = ''
         passwords.confirm_password = ''
+        
+        // Reset form validation
+        if (form.value) {
+          form.value.resetValidation()
+        }
+        
+        // Show a notification (using Vuetify snackbar)
+        if (window.$vuetify && window.$vuetify.snackbar) {
+          window.$vuetify.snackbar.show({
+            text: 'Password changed successfully',
+            color: 'success',
+            timeout: 3000
+          })
+        }
       } catch (err) {
         if (err.response && err.response.data && err.response.data.message) {
           error.value = err.response.data.message
@@ -144,7 +162,8 @@ export default defineComponent({
       success,
       passwords,
       rules,
-      changePassword
+      changePassword,
+      form
     }
   }
 })

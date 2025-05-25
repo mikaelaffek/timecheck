@@ -144,6 +144,20 @@
               {{ formatHours(item.total_hours) }}
             </span>
           </template>
+          <template v-slot:item.location="{ item }">
+            <div v-if="item.latitude && item.longitude" class="location-info">
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-icon small color="primary" class="mr-1" v-bind="attrs" v-on="on">mdi-map-marker</v-icon>
+                </template>
+                <span>Öppna plats i karta</span>
+              </v-tooltip>
+              <span class="text-caption">
+                {{ formatCoordinates(item.latitude, item.longitude) }}
+              </span>
+            </div>
+            <span v-else class="text-caption grey--text">Ingen platsdata</span>
+          </template>
           <template v-slot:item.status="{ item }">
             <v-chip
               small
@@ -180,6 +194,8 @@ interface TimeRegistration {
   clock_out: string | null
   total_hours: number | null
   status: string
+  latitude: number | null
+  longitude: number | null
   user: {
     id: number
     name: string
@@ -209,14 +225,15 @@ export default defineComponent({
     const statuses = ['Alla', 'Godkänd', 'Avvisad', 'Väntande']
 
     const headers = [
-      { text: 'Personal', value: 'employee', width: '25%' },
-      { text: 'In', value: 'clock_in', width: '10%' },
-      { text: 'Ut', value: 'clock_out', width: '10%' },
-      { text: 'Rast', value: 'break', width: '10%' },
-      { text: 'Arbetstid', value: 'total_hours', width: '15%' },
-      { text: 'Schemadiff', value: 'schedule_diff', width: '10%' },
+      { text: 'Personal', value: 'employee', width: '20%' },
+      { text: 'In', value: 'clock_in', width: '8%' },
+      { text: 'Ut', value: 'clock_out', width: '8%' },
+      { text: 'Rast', value: 'break', width: '8%' },
+      { text: 'Arbetstid', value: 'total_hours', width: '10%' },
+      { text: 'Plats', value: 'location', width: '15%' },
+      { text: 'Schemadiff', value: 'schedule_diff', width: '8%' },
       { text: 'Info', value: 'info', width: '5%' },
-      { text: 'Status', value: 'status', width: '10%' },
+      { text: 'Status', value: 'status', width: '8%' },
       { text: 'Hantera', value: 'actions', width: '5%' }
     ]
 
@@ -296,7 +313,18 @@ export default defineComponent({
 
     const formatDateHeader = (dateString: string) => {
       const date = parseISO(dateString)
-      return format(date, 'EEEE d MMMM', { locale: sv }).toUpperCase()
+      // Swedish date format: day month year (weekday)
+      return format(date, 'EEEE d MMMM yyyy', { locale: sv }).toUpperCase()
+    }
+    
+    const formatCoordinates = (latitude: number, longitude: number) => {
+      if (!latitude || !longitude) return 'Ingen platsdata'
+      
+      // Format coordinates to 6 decimal places (approx. 10cm precision)
+      const lat = latitude.toFixed(6)
+      const lng = longitude.toFixed(6)
+      
+      return `${lat}, ${lng}`
     }
 
     const getStatusColor = (status: string) => {
@@ -328,8 +356,6 @@ export default defineComponent({
     return {
       loading,
       timeRegistrations,
-      groupedRegistrations,
-      headers,
       search,
       dateRange,
       selectedWorkplace,
@@ -340,9 +366,12 @@ export default defineComponent({
       groups,
       costCenters,
       statuses,
+      headers,
+      groupedRegistrations,
       formatTime,
       formatHours,
       formatDateHeader,
+      formatCoordinates,
       getStatusColor,
       formatStatus,
       getAvatarUrl
