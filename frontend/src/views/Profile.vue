@@ -79,6 +79,23 @@
         </v-card>
       </v-col>
     </v-row>
+    <!-- Snackbar for notifications -->
+    <v-snackbar
+      v-model="snackbar"
+      :color="snackbarColor"
+      :timeout="3000"
+      top
+    >
+      {{ snackbarText }}
+      <template v-slot:actions>
+        <v-btn
+          variant="text"
+          @click="snackbar = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
@@ -106,6 +123,9 @@ export default defineComponent({
     const error = ref('')
     const success = ref('')
     const departments = ref<Department[]>([])
+    const snackbar = ref(false)
+    const snackbarText = ref('')
+    const snackbarColor = ref('success')
     const profile = reactive<Profile>({
       name: '',
       email: '',
@@ -155,9 +175,17 @@ export default defineComponent({
       try {
         await axios.put('/api/user/profile', profile)
         success.value = 'Profile updated successfully'
+        // Show snackbar notification
+        snackbarText.value = 'Profile updated successfully'
+        snackbarColor.value = 'success'
+        snackbar.value = true
       } catch (err) {
         error.value = 'Failed to update profile'
         console.error('Error updating profile:', err)
+        // Show error snackbar
+        snackbarText.value = 'Failed to update profile'
+        snackbarColor.value = 'error'
+        snackbar.value = true
       } finally {
         loading.value = false
       }
@@ -176,7 +204,10 @@ export default defineComponent({
       profile,
       departments,
       rules,
-      saveProfile
+      saveProfile,
+      snackbar,
+      snackbarText,
+      snackbarColor
     }
   }
 })

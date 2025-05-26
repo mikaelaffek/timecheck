@@ -33,11 +33,11 @@ class Location extends Model
     ];
 
     /**
-     * Get the schedules for the location.
+     * Get the time registrations for the location.
      */
-    public function schedules(): HasMany
+    public function timeRegistrations(): HasMany
     {
-        return $this->hasMany(Schedule::class);
+        return $this->hasMany(TimeRegistration::class);
     }
 
     /**

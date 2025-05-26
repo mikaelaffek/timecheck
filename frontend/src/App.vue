@@ -75,23 +75,7 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item to="/schedules" link class="py-2">
-          <v-list-item-icon>
-            <v-icon>mdi-calendar</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Schedule</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item to="/reports" link class="py-2">
-          <v-list-item-icon>
-            <v-icon>mdi-chart-bar</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Reports</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
+        <!-- Schedule and Reports menu items have been removed -->
 
         <v-list-item v-if="isAdmin || isManager" to="/admin/time-registrations" link class="py-2">
           <v-list-item-icon>

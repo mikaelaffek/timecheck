@@ -318,11 +318,22 @@ interface TimeRegistration {
   date: string
   clock_in: string
   clock_out: string | null
-  latitude: number | null
-  longitude: number | null
+  location_id: number | null
+  location?: {
+    id: number
+    name: string
+    address: string
+    latitude: number
+    longitude: number
+  } | null
   notes: string | null
   total_hours: number | null
   status: string
+  // Schedule-related fields
+  scheduled_start?: string | null
+  scheduled_end?: string | null
+  is_recurring?: boolean
+  recurrence_pattern?: string | null
 }
 
 interface EditedTimeRegistration {
@@ -330,9 +341,13 @@ interface EditedTimeRegistration {
   date: string
   clock_in_time: string
   clock_out_time: string
-  latitude: number | null
-  longitude: number | null
+  location_id: number | null
   notes: string | null
+  // Schedule-related fields (optional)
+  scheduled_start?: string | null
+  scheduled_end?: string | null
+  is_recurring?: boolean
+  recurrence_pattern?: string | null
 }
 
 export default defineComponent({
@@ -356,8 +371,7 @@ export default defineComponent({
       date: '',
       clock_in_time: '',
       clock_out_time: '',
-      latitude: null,
-      longitude: null,
+      location_id: null,
       notes: null
     }
     

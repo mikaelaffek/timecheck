@@ -17,14 +17,18 @@ class TimeRegistration extends Model
      */
     protected $fillable = [
         'user_id',
+        'location_id',
         'date',
         'clock_in',
         'clock_out',
         'total_hours',
-        'latitude',
-        'longitude',
         'notes',
         'status',
+        // Schedule-related fields
+        'scheduled_start',
+        'scheduled_end',
+        'is_recurring',
+        'recurrence_pattern',
     ];
 
     /**
@@ -36,9 +40,10 @@ class TimeRegistration extends Model
         'date' => 'date',
         'clock_in' => 'datetime',
         'clock_out' => 'datetime',
+        'scheduled_start' => 'datetime',
+        'scheduled_end' => 'datetime',
         'total_hours' => 'float',
-        'latitude' => 'float',
-        'longitude' => 'float',
+        'is_recurring' => 'boolean',
     ];
 
     /**
@@ -47,6 +52,14 @@ class TimeRegistration extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+    
+    /**
+     * Get the location associated with the time registration.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     /**
@@ -61,7 +74,10 @@ class TimeRegistration extends Model
         $clockIn = \Carbon\Carbon::parse($this->clock_in);
         $clockOut = \Carbon\Carbon::parse($this->clock_out);
 
-        return round($clockOut->diffInMinutes($clockIn) / 60, 2);
+        // Calculate the difference in minutes and ensure it's positive
+        // The first parameter should be the earlier time (clock_in)
+        // The second parameter (absolute) should be true to always get positive values
+        return round($clockOut->diffInMinutes($clockIn, true) / 60, 2);
     }
 
     /**

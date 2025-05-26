@@ -7,9 +7,6 @@ const Login = () => import('../views/Login.vue')
 const Dashboard = () => import('../views/Dashboard.vue')
 const TimeRegistrations = () => import('../views/TimeRegistrations.vue')
 const AdminTimeRegistrations = () => import('../views/AdminTimeRegistrations.vue')
-const Schedules = () => import('../views/Schedules.vue')
-const AdminSchedules = () => import('../views/AdminSchedules.vue')
-const Reports = () => import('../views/Reports.vue')
 const Settings = () => import('../views/Settings.vue')
 const Profile = () => import('../views/Profile.vue')
 const ChangePassword = () => import('../views/ChangePassword.vue')
@@ -47,24 +44,7 @@ const routes: Array<RouteRecordRaw> = [
     component: AdminTimeRegistrations,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
-  {
-    path: '/schedules',
-    name: 'Schedules',
-    component: Schedules,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/admin/schedules',
-    name: 'AdminSchedules',
-    component: AdminSchedules,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/reports',
-    name: 'Reports',
-    component: Reports,
-    meta: { requiresAuth: true }
-  },
+  // Schedules and Reports routes have been removed
   {
     path: '/settings',
     name: 'Settings',

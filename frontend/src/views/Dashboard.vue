@@ -238,48 +238,16 @@ const fetchRecentRegistrations = async () => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }
     
-    try {
-      const response = await axios.get('/api/time-registrations/recent')
-      console.log('Recent registrations response:', response.data)
+    const response = await axios.get('/api/recent-time-registrations')
+    console.log('Recent registrations response:', response.data)
+    
+    // Ensure we're handling the response data correctly
+    if (Array.isArray(response.data)) {
       recentRegistrations.value = response.data
-    } catch (apiError) {
-      // Use our error handler utility to properly log the error
-      handleApiError(apiError, 'Dashboard.fetchRecentRegistrations')
-      console.log('Using mock data for time registrations')
-      
-      // Use mock data if API fails, but don't include an active clock-in for today
-      // to avoid confusion with the clock-in/out button state
-      const today = new Date().toISOString().split('T')[0]
-      const yesterday = new Date()
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toISOString().split('T')[0]
-      
-      const twoDaysAgo = new Date()
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-      const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0]
-      
-      recentRegistrations.value = [
-        // Don't include an active registration for today in mock data
-        // This was causing the UI to show Clock Out instead of Clock In
-        {
-          id: 1002,
-          user_id: 1,
-          date: yesterdayStr,
-          clock_in: '08:15:00',
-          clock_out: '17:00:00',
-          total_hours: 8.75,
-          status: 'approved'
-        },
-        {
-          id: 1003,
-          user_id: 1,
-          date: twoDaysAgoStr,
-          clock_in: '09:00:00',
-          clock_out: '18:30:00',
-          total_hours: 9.5,
-          status: 'approved'
-        }
-      ]
+      console.log('Successfully loaded', recentRegistrations.value.length, 'time registrations')
+    } else {
+      console.error('Unexpected response format:', response.data)
+      recentRegistrations.value = []
     }
     
     // Check if user is currently clocked in

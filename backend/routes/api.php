@@ -3,9 +3,6 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\LocationController;
-use App\Http\Controllers\Api\OvertimeRuleController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\TimeRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -45,19 +42,7 @@ Route::get('/test-time-registrations', function() {
     ]);
 });
 
-// Test endpoint for schedules
-Route::get('/test-schedules', function() {
-    // Get all schedules
-    $schedules = \App\Models\Schedule::orderBy('date', 'desc')
-        ->limit(5)
-        ->get();
-    
-    return response()->json([
-        'status' => 'success',
-        'count' => $schedules->count(),
-        'data' => $schedules
-    ]);
-});
+// Test endpoint for schedules has been removed
 
 // Test login endpoint (direct DB access)
 Route::post('/test-login', function(\Illuminate\Http\Request $request) {
@@ -110,23 +95,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('time-registrations', TimeRegistrationController::class);
     Route::post('/time-registrations/clock-in', [TimeRegistrationController::class, 'clockIn']);
     Route::post('/time-registrations/clock-out', [TimeRegistrationController::class, 'clockOut']);
-    Route::get('/time-registrations/recent', [TimeRegistrationController::class, 'recent']);
+    Route::get('/time-registrations/status', [TimeRegistrationController::class, 'status']);
     
-    // Schedules
-    Route::apiResource('schedules', ScheduleController::class);
-    Route::get('/schedules/date/{date}', [ScheduleController::class, 'getByDate']);
-    Route::get('/schedules/current-week', [ScheduleController::class, 'getCurrentWeek']);
-    Route::post('/schedules/generate-recurring', [ScheduleController::class, 'generateRecurring']);
+    // Explicitly define the recent endpoint to avoid route model binding confusion
+    Route::get('/recent-time-registrations', [TimeRegistrationController::class, 'recent']);
     
-    // Reports
-    Route::post('/reports/time', [ReportController::class, 'generateTimeReport']);
-    Route::post('/reports/staff-registry', [ReportController::class, 'generateStaffRegistry']);
-    Route::get('/reports/recent', [ReportController::class, 'getRecentReports']);
-    Route::get('/reports/download/{report}', [ReportController::class, 'downloadReport']);
-    
-    // Overtime rules
-    Route::apiResource('overtime-rules', OvertimeRuleController::class);
-    Route::get('/overtime-rules/active', [OvertimeRuleController::class, 'getActiveRules']);
+    // Schedule, Report, and OvertimeRule routes have been removed
     
     // Locations
     Route::apiResource('locations', LocationController::class);

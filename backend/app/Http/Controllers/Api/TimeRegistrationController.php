@@ -252,6 +252,36 @@ class TimeRegistrationController extends Controller
     }
     
     /**
+     * Get the current clock-in status for the user.
+     */
+    public function status(Request $request)
+    {
+        $user = $request->user();
+        $now = Carbon::now();
+        $today = $now->toDateString();
+        
+        // Find the active time registration
+        $activeRegistration = TimeRegistration::where('user_id', $user->id)
+            ->where('date', $today)
+            ->whereNull('clock_out')
+            ->first();
+            
+        // Format the clock-in time as a string for consistent frontend display
+        $clockInTime = null;
+        if ($activeRegistration && $activeRegistration->clock_in) {
+            // Format as HH:MM:SS string
+            $clockInTime = $activeRegistration->clock_in->format('H:i:s');
+        }
+        
+        return response()->json([
+            'is_clocked_in' => $activeRegistration ? true : false,
+            'clock_in_time' => $clockInTime,
+            'date' => $today,
+            'time_registration_id' => $activeRegistration ? $activeRegistration->id : null
+        ]);
+    }
+    
+    /**
      * Get recent time registrations for the user.
      */
     public function recent(Request $request)
@@ -259,63 +289,40 @@ class TimeRegistrationController extends Controller
         $user = $request->user();
         $limit = $request->limit ?? 5;
         
-        // Try to get real registrations first
+        // Get real time registrations for the logged-in user
         $registrations = TimeRegistration::where('user_id', $user->id)
             ->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->limit($limit)
             ->get();
-        
-        // If no registrations found, create mock data for testing
-        if ($registrations->isEmpty()) {
-            $mockData = [];
-            $today = now()->format('Y-m-d');
-            $yesterday = now()->subDay()->format('Y-m-d');
-            $twoDaysAgo = now()->subDays(2)->format('Y-m-d');
             
-            // Today's registration (active)
-            $mockData[] = [
-                'id' => 1001,
-                'user_id' => $user->id,
-                'date' => $today,
-                'clock_in' => '08:30:00',
-                'clock_out' => null,
-                'total_hours' => null,
-                'status' => 'pending',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+        // Format the time values to HH:MM format
+        $formattedRegistrations = $registrations->map(function ($registration) {
+            $data = $registration->toArray();
             
-            // Yesterday's registration (completed)
-            $mockData[] = [
-                'id' => 1002,
-                'user_id' => $user->id,
-                'date' => $yesterday,
-                'clock_in' => '08:15:00',
-                'clock_out' => '17:00:00',
-                'total_hours' => 8.75,
-                'status' => 'approved',
-                'created_at' => now()->subDay(),
-                'updated_at' => now()->subDay(),
-            ];
+            // Format clock_in time to HH:MM
+            if (isset($data['clock_in'])) {
+                $time = Carbon::parse($data['clock_in']);
+                $data['clock_in'] = $time->format('H:i');
+            }
             
-            // Two days ago (completed)
-            $mockData[] = [
-                'id' => 1003,
-                'user_id' => $user->id,
-                'date' => $twoDaysAgo,
-                'clock_in' => '09:00:00',
-                'clock_out' => '18:30:00',
-                'total_hours' => 9.5,
-                'status' => 'approved',
-                'created_at' => now()->subDays(2),
-                'updated_at' => now()->subDays(2),
-            ];
+            // Format clock_out time to HH:MM if it exists
+            if (isset($data['clock_out']) && $data['clock_out']) {
+                $time = Carbon::parse($data['clock_out']);
+                $data['clock_out'] = $time->format('H:i');
+            }
             
-            return response()->json($mockData);
-        }
+            return $data;
+        });
             
-        return response()->json($registrations);
+        // Log for debugging purposes
+        \Log::info('Recent time registrations for user ID: ' . $user->id, [
+            'count' => $registrations->count(),
+            'user' => $user->personal_id,
+            'sample' => $formattedRegistrations->first()
+        ]);
+            
+        return response()->json($formattedRegistrations);
     }
     
     /**
