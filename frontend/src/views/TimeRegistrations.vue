@@ -399,8 +399,16 @@ export default defineComponent({
     }
     
     const formatTime = (timeString: string) => {
-      const date = new Date(`2000-01-01T${timeString}`)
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      if (!timeString) return '-'
+      // If already in HH:MM format, return as is
+      if (timeString.length === 5) return timeString
+      try {
+        const date = new Date(`2000-01-01T${timeString}`)
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      } catch (e) {
+        console.error('Error formatting time:', e)
+        return timeString.substring(0, 5)
+      }
     }
     
     const fetchTimeRegistrations = async () => {

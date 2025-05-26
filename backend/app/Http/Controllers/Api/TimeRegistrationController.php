@@ -7,6 +7,7 @@ use App\Models\TimeRegistration;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 
 class TimeRegistrationController extends Controller
 {
@@ -191,9 +192,15 @@ class TimeRegistrationController extends Controller
         
         // Check if user is already clocked in
         $activeRegistration = TimeRegistration::where('user_id', $user->id)
-            ->where('date', $today)
+            ->whereDate('date', $today)
             ->whereNull('clock_out')
             ->first();
+            
+        \Log::info('Checking if already clocked in', [
+            'user_id' => $user->id,
+            'today' => $today,
+            'is_clocked_in' => (bool)$activeRegistration
+        ]);
             
         if ($activeRegistration) {
             return response()->json([
@@ -216,6 +223,60 @@ class TimeRegistrationController extends Controller
         ]);
         
         return response()->json($timeRegistration, 201);
+    }
+    
+    /**
+     * Check if the user is currently clocked in.
+     */
+    public function isClockIn(Request $request)
+    {
+        $user = $request->user();
+        $today = Carbon::now()->toDateString();
+        
+        \Log::info('Checking if user is clocked in', [
+            'user_id' => $user->id,
+            'today' => $today
+        ]);
+        
+        // Find any active registration for today (no clock-out time)
+        // Use whereDate to compare just the date portion
+        $activeRegistration = TimeRegistration::where('user_id', $user->id)
+            ->whereDate('date', $today)
+            ->whereNull('clock_out')
+            ->first();
+            
+        // Log the query for debugging
+        \Log::info('Query details', [
+            'sql' => TimeRegistration::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->whereNull('clock_out')
+                ->toSql(),
+            'bindings' => [
+                'user_id' => $user->id,
+                'date' => $today
+            ]
+        ]);
+        
+        if ($activeRegistration) {
+            \Log::info('User is clocked in', [
+                'user_id' => $user->id,
+                'time_registration_id' => $activeRegistration->id,
+                'clock_in' => $activeRegistration->clock_in
+            ]);
+            
+            return response()->json([
+                'clocked_in' => true,
+                'time_registration' => $activeRegistration
+            ]);
+        }
+        
+        \Log::info('User is not clocked in', [
+            'user_id' => $user->id
+        ]);
+        
+        return response()->json([
+            'clocked_in' => false
+        ]);
     }
     
     /**
@@ -296,20 +357,28 @@ class TimeRegistrationController extends Controller
             ->limit($limit)
             ->get();
             
-        // Format the time values to HH:MM format
+        // Format the time values to HH:MM format and calculate total hours
         $formattedRegistrations = $registrations->map(function ($registration) {
             $data = $registration->toArray();
             
             // Format clock_in time to HH:MM
             if (isset($data['clock_in'])) {
-                $time = Carbon::parse($data['clock_in']);
-                $data['clock_in'] = $time->format('H:i');
+                $clockIn = Carbon::parse($data['clock_in']);
+                $data['clock_in'] = $clockIn->format('H:i');
             }
             
             // Format clock_out time to HH:MM if it exists
             if (isset($data['clock_out']) && $data['clock_out']) {
-                $time = Carbon::parse($data['clock_out']);
-                $data['clock_out'] = $time->format('H:i');
+                $clockOut = Carbon::parse($data['clock_out']);
+                $data['clock_out'] = $clockOut->format('H:i');
+                
+                // Calculate total hours if both clock_in and clock_out exist
+                if (isset($clockIn)) {
+                    $data['total_hours'] = round($clockOut->diffInMinutes($clockIn, true) / 60, 1);
+                }
+            } else {
+                // If no clock_out, set total_hours to null
+                $data['total_hours'] = null;
             }
             
             return $data;

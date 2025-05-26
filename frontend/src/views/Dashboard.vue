@@ -167,14 +167,28 @@ const headers = [
 // Format time (HH:MM:SS to HH:MM)
 const formatTime = (time) => {
   if (!time) return '-'
-  return time.substring(0, 5)
+  // If already in HH:MM format, return as is
+  if (time.length === 5) return time
+  // Otherwise parse and format
+  try {
+    const date = new Date(`2000-01-01T${time}`)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch (e) {
+    console.error('Error formatting time:', e)
+    return time.substring(0, 5)
+  }
 }
 
 // Format date (YYYY-MM-DD to DD/MM/YYYY)
 const formatDate = (dateString) => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString()
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString()
+  } catch (e) {
+    console.error('Error formatting date:', e)
+    return dateString
+  }
 }
 
 // Get status color
@@ -250,24 +264,42 @@ const fetchRecentRegistrations = async () => {
       recentRegistrations.value = []
     }
     
-    // Check if user is currently clocked in
-    const today = new Date().toISOString().split('T')[0]
-    const todayRegistration = recentRegistrations.value.find(
-      reg => {
-        // Check if the date matches today (might be in different formats)
-        const regDate = new Date(reg.date).toISOString().split('T')[0]
-        return regDate === today && reg.clock_out === null
+    // Check if user is currently clocked in using the dedicated endpoint
+    try {
+      console.log('Checking if user is clocked in via API...')
+      const clockInStatusResponse = await axios.get('/api/time-registrations/is-clocked-in')
+      console.log('Clock in status response:', clockInStatusResponse.data)
+      
+      if (clockInStatusResponse.data.clocked_in) {
+        console.log('User is clocked in according to API')
+        isClockedIn.value = true
+        lastClockIn.value = clockInStatusResponse.data.time_registration.clock_in
+      } else {
+        console.log('User is not clocked in according to API')
+        isClockedIn.value = false
+        lastClockIn.value = null
       }
-    )
-    
-    if (todayRegistration) {
-      console.log('Found active clock-in for today:', todayRegistration)
-      isClockedIn.value = true
-      lastClockIn.value = todayRegistration.clock_in
-    } else {
-      console.log('No active clock-in found for today')
-      isClockedIn.value = false
-      lastClockIn.value = null
+    } catch (error) {
+      console.error('Error checking clock-in status:', error)
+      
+      // Fallback to the old method if the API call fails
+      console.log('Falling back to checking recent registrations...')
+      const today = new Date().toISOString().split('T')[0]
+      
+      const todayRegistration = recentRegistrations.value.find(reg => {
+        const regDate = new Date(reg.date).toISOString().split('T')[0]
+        return regDate === today && (!reg.clock_out || reg.clock_out === null || reg.clock_out === '')
+      })
+      
+      if (todayRegistration) {
+        console.log('Found active clock-in in recent registrations:', todayRegistration)
+        isClockedIn.value = true
+        lastClockIn.value = todayRegistration.clock_in
+      } else {
+        console.log('No active clock-in found in recent registrations')
+        isClockedIn.value = false
+        lastClockIn.value = null
+      }
     }
 
     // Calculate statistics
