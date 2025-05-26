@@ -71,13 +71,13 @@
               <v-row>
                 <v-col cols="6">
                   <div class="text-center">
-                    <h3 class="text-h4">{{ stats.weeklyHours.toFixed(1) }}</h3>
+                    <h3 class="text-h4">{{ formatHoursAndMinutes(stats.weeklyHours) }}</h3>
                     <p class="text-subtitle-2">Hours this week</p>
                   </div>
                 </v-col>
                 <v-col cols="6">
                   <div class="text-center">
-                    <h3 class="text-h4">{{ stats.monthlyHours.toFixed(1) }}</h3>
+                    <h3 class="text-h4">{{ formatHoursAndMinutes(stats.monthlyHours) }}</h3>
                     <p class="text-subtitle-2">Hours this month</p>
                   </div>
                 </v-col>
@@ -112,7 +112,7 @@
                   {{ item.clock_out ? formatTime(item.clock_out) : '-' }}
                 </template>
                 <template v-slot:item.total_hours="{ item }">
-                  {{ item.total_hours ? item.total_hours.toFixed(1) : '-' }}
+                  {{ item.total_hours || '-' }}
                 </template>
                 <template v-slot:item.status="{ item }">
                   <v-chip
@@ -201,6 +201,16 @@ const getStatusColor = (status) => {
   }
 }
 
+// Format hours and minutes
+const formatHoursAndMinutes = (totalHours) => {
+  if (totalHours === undefined || totalHours === null) return '-'
+  
+  const hours = Math.floor(totalHours)
+  const minutes = Math.round((totalHours - hours) * 60)
+  
+  return `${hours}h ${minutes}m`
+}
+
 // Update current time
 const updateCurrentTime = () => {
   const now = new Date()
@@ -221,16 +231,19 @@ const calculateStatistics = () => {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   recentRegistrations.value.forEach(reg => {
-    if (!reg.total_hours) return
+    // Skip if no total hours data available
+    if (!reg.total_hours_decimal && !reg.total_hours) return
 
     const regDate = new Date(reg.date)
+    // Use the decimal value for calculations if available, otherwise fallback to the old format
+    const hoursValue = reg.total_hours_decimal !== undefined ? reg.total_hours_decimal : reg.total_hours
     
     if (regDate >= startOfWeek) {
-      weeklyHours += reg.total_hours
+      weeklyHours += Number(hoursValue)
     }
     
     if (regDate >= startOfMonth) {
-      monthlyHours += reg.total_hours
+      monthlyHours += Number(hoursValue)
     }
   })
 

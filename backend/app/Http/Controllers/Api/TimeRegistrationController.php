@@ -372,9 +372,17 @@ class TimeRegistrationController extends Controller
                 $clockOut = Carbon::parse($data['clock_out']);
                 $data['clock_out'] = $clockOut->format('H:i');
                 
-                // Calculate total hours if both clock_in and clock_out exist
+                // Calculate total hours and minutes if both clock_in and clock_out exist
                 if (isset($clockIn)) {
-                    $data['total_hours'] = round($clockOut->diffInMinutes($clockIn, true) / 60, 1);
+                    $diffInMinutes = $clockOut->diffInMinutes($clockIn, true);
+                    $hours = floor($diffInMinutes / 60);
+                    $minutes = $diffInMinutes % 60;
+                    
+                    // Format as hours and minutes
+                    $data['total_hours'] = $hours . 'h ' . $minutes . 'm';
+                    
+                    // Also include the raw value for sorting/calculations
+                    $data['total_hours_decimal'] = round($diffInMinutes / 60, 2);
                 }
             } else {
                 // If no clock_out, set total_hours to null
