@@ -267,7 +267,7 @@ const fetchRecentRegistrations = async () => {
     // Check if user is currently clocked in using the dedicated endpoint
     try {
       console.log('Checking if user is clocked in via API...')
-      const clockInStatusResponse = await axios.get('/api/time-registrations/is-clocked-in')
+      const clockInStatusResponse = await axios.get('/api/check-clock-in-status')
       console.log('Clock in status response:', clockInStatusResponse.data)
       
       if (clockInStatusResponse.data.clocked_in) {

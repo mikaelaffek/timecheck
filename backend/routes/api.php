@@ -96,7 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/time-registrations/clock-in', [TimeRegistrationController::class, 'clockIn']);
     Route::post('/time-registrations/clock-out', [TimeRegistrationController::class, 'clockOut']);
     Route::get('/time-registrations/status', [TimeRegistrationController::class, 'status']);
-    Route::get('/time-registrations/is-clocked-in', [TimeRegistrationController::class, 'isClockIn']);
+    // Explicitly define the is-clocked-in endpoint to avoid route model binding confusion
+    Route::get('/check-clock-in-status', [TimeRegistrationController::class, 'isClockIn']);
     
     // Explicitly define the recent endpoint to avoid route model binding confusion
     Route::get('/recent-time-registrations', [TimeRegistrationController::class, 'recent']);
