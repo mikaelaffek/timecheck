@@ -112,7 +112,7 @@ export default defineComponent({
         const success = await authStore.login(personalId.value, password.value)
         
         if (success) {
-          router.push('/')
+          router.push('/dashboard')
         } else {
           error.value = 'Invalid credentials. Please try again.'
         }

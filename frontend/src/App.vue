@@ -57,7 +57,7 @@
       class="side-menu"
     >
       <v-list nav dense>
-        <v-list-item to="/" link class="py-2">
+        <v-list-item @click="navigateTo('/dashboard')" link class="py-2">
           <v-list-item-icon>
             <v-icon>mdi-view-dashboard</v-icon>
           </v-list-item-icon>
@@ -66,7 +66,7 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item to="/time-registrations" link class="py-2">
+        <v-list-item @click="navigateTo('/time-registrations')" link class="py-2">
           <v-list-item-icon>
             <v-icon>mdi-clock-outline</v-icon>
           </v-list-item-icon>
@@ -77,7 +77,7 @@
 
         <!-- Schedule and Reports menu items have been removed -->
 
-        <v-list-item v-if="isAdmin || isManager" to="/admin/time-registrations" link class="py-2">
+        <v-list-item v-if="isAdmin || isManager" @click="navigateTo('/admin/time-registrations')" link class="py-2">
           <v-list-item-icon>
             <v-icon>mdi-account-group</v-icon>
           </v-list-item-icon>
@@ -86,7 +86,7 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item v-if="isAdmin" to="/users" link class="py-2">
+        <v-list-item v-if="isAdmin" @click="navigateTo('/users')" link class="py-2">
           <v-list-item-icon>
             <v-icon>mdi-account-cog</v-icon>
           </v-list-item-icon>
@@ -95,12 +95,25 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item to="/settings" link class="py-2">
+        <v-list-item @click="navigateTo('/settings')" link class="py-2">
           <v-list-item-icon>
             <v-icon>mdi-cog</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
             <v-list-item-title>Settings</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        
+        <!-- Divider before logout -->
+        <v-divider class="my-2"></v-divider>
+        
+        <!-- Logout Button -->
+        <v-list-item @click="logout" class="py-2">
+          <v-list-item-icon>
+            <v-icon>mdi-logout</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Logout</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -117,8 +130,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'App',
@@ -131,6 +144,23 @@ export default defineComponent({
     const isAdmin = computed(() => authStore.user?.role === 'admin')
     const isManager = computed(() => authStore.user?.role === 'manager')
     const hasToken = computed(() => !!localStorage.getItem('token'))
+
+    const navigateTo = (path: string) => {
+      console.log('Navigation requested to:', path)
+      // Check if we're already on the requested path
+      if (router.currentRoute.value.path === path) {
+        console.log('Already on requested path, no navigation needed')
+        return
+      }
+      
+      // Use push instead of replace for better history management
+      router.push(path).catch(err => {
+        // Ignore navigation duplicated errors as they're expected
+        if (err.name !== 'NavigationDuplicated') {
+          console.error('Navigation error:', err)
+        }
+      })
+    }
 
     const logout = async () => {
       await authStore.logout()
@@ -151,6 +181,7 @@ export default defineComponent({
       isAdmin,
       isManager,
       hasToken,
+      navigateTo,
       logout
     }
   }

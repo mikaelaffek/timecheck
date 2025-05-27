@@ -1,10 +1,7 @@
 <template>
   <div>
-    <loading-overlay :show="loading" message="Loading employee time registrations..."></loading-overlay>
     <v-row>
-      <v-col cols="12">
-        <h1 class="text-h4 mb-4">Sön 1 Okt - Tis 31 Okt</h1>
-      </v-col>
+    
     </v-row>
 
     <v-row>
@@ -109,7 +106,37 @@
       </v-col>
     </v-row>
 
-    <v-row v-for="(dayGroup, date) in groupedRegistrations" :key="date">
+    <!-- Loading indicator for the table -->
+    <v-row v-if="loading">
+      <v-col cols="12">
+        <v-card class="elevation-1 mb-4">
+          <v-card-text class="text-center py-5">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              size="24"
+              class="mr-2"
+            ></v-progress-circular>
+            <span>Loading employee time registrations...</span>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- No data message when there are no registrations -->
+    <v-row v-else-if="Object.keys(groupedRegistrations).length === 0">
+      <v-col cols="12">
+        <v-card class="elevation-1 mb-4">
+          <v-card-text class="text-center py-5">
+            <v-icon large color="grey lighten-1" class="mb-2">mdi-calendar-blank</v-icon>
+            <div>No time registrations found for the selected period</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Actual data table when data is loaded -->
+    <v-row v-else v-for="(dayGroup, date) in groupedRegistrations" :key="date">
       <v-col cols="12">
         <div class="grey lighten-3 py-2 px-4 text-subtitle-1 font-weight-bold">
           {{ formatDateHeader(date) }}
@@ -239,37 +266,35 @@ export default defineComponent({
 
     const fetchTimeRegistrations = async () => {
       loading.value = true
+      console.log('Fetching time registrations...');
       try {
         // Ensure the authorization header is set
         const token = localStorage.getItem('token')
+        console.log('Token exists:', !!token);
         if (token) {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         }
         
-        const response = await axios.get('/api/time-registrations')
+        // Always use real data
+        // Fetch real data from API using the dedicated admin endpoint
+        console.log('Fetching real data from API...');
+        // Use the dedicated admin endpoint that already includes user data
+        const response = await axios.get('/api/admin/time-registrations');
+        console.log('Admin time registrations response:', response);
         
-        // Add user data to each time registration
-        const registrationsWithUsers = await Promise.all(
-          response.data.data.map(async (registration: any) => {
-            try {
-              const userResponse = await axios.get(`/api/users/${registration.user_id}`)
-              return {
-                ...registration,
-                user: userResponse.data
-              }
-            } catch (error) {
-              console.error(`Error fetching user ${registration.user_id}:`, error)
-              return {
-                ...registration,
-                user: { id: registration.user_id, name: `User ${registration.user_id}`, email: '', role: '' }
-              }
-            }
-          })
-        )
+        // The response already includes user data in the correct format
+        if (Array.isArray(response.data)) {
+          timeRegistrations.value = response.data;
+        } else {
+          // Handle potential different response formats
+          timeRegistrations.value = response.data.data || [];
+        }
         
-        timeRegistrations.value = registrationsWithUsers
+        console.log('Loaded time registrations:', timeRegistrations.value);
       } catch (error) {
-        console.error('Error fetching time registrations:', error)
+        console.error('API request failed:', error);
+        timeRegistrations.value = [];
+        console.log('No data loaded due to API error');
       } finally {
         loading.value = false
       }

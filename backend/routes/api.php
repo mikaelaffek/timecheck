@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\TimeRegistrationController;
+use App\Http\Controllers\Api\AdminTimeRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -113,4 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Users (admin only)
     Route::apiResource('users', UserController::class);
+    
+    // Admin time registrations - specific endpoint that includes user data
+    Route::get('/admin/time-registrations', [AdminTimeRegistrationController::class, 'index']);
 });

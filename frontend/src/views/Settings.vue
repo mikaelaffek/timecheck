@@ -292,8 +292,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue'
+import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
 interface OvertimeRule {
@@ -308,12 +309,23 @@ export default defineComponent({
   name: 'Settings',
   setup() {
     const authStore = useAuthStore()
+    const router = useRouter()
+    const route = useRoute()
     const loading = ref(false)
     const isSavingProfile = ref(false)
     const isChangingPassword = ref(false)
     const isSavingSettings = ref(false)
     const overtimeDialog = ref(false)
     const deleteDialog = ref(false)
+    
+    // Fix for navigation issues
+    const handleNavigation = (path: string) => {
+      console.log('Navigation requested to:', path)
+      // Force navigation using replace to avoid history issues
+      router.replace(path).catch(err => {
+        console.error('Navigation error:', err)
+      })
+    }
     
     const profileForm = ref(null)
     const passwordForm = ref(null)

@@ -39,12 +39,4 @@ class Location extends Model
     {
         return $this->hasMany(TimeRegistration::class);
     }
-
-    /**
-     * Get the reports for the location.
-     */
-    public function reports(): HasMany
-    {
-        return $this->hasMany(Report::class);
-    }
 }

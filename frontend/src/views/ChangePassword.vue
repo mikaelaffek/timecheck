@@ -79,7 +79,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive } from 'vue'
+import { defineComponent, ref, reactive, getCurrentInstance } from 'vue'
 import axios from 'axios'
 
 interface PasswordForm {
@@ -130,14 +130,20 @@ export default defineComponent({
         passwords.new_password = ''
         passwords.confirm_password = ''
         
+        // Reset validation state to prevent red fields after success
+        valid.value = true
+        
         // Reset form validation
         if (form.value) {
-          form.value.resetValidation()
+          setTimeout(() => {
+            form.value.resetValidation()
+          }, 100)
         }
         
-        // Show a notification (using Vuetify snackbar)
-        if (window.$vuetify && window.$vuetify.snackbar) {
-          window.$vuetify.snackbar.show({
+        // Show a snackbar notification
+        const { $root } = getCurrentInstance() || {}
+        if ($root) {
+          $root.$emit('show-snackbar', {
             text: 'Password changed successfully',
             color: 'success',
             timeout: 3000

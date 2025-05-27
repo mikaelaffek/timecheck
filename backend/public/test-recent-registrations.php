@@ -97,10 +97,10 @@ echo "Token: $token<br>";
 
 // Make a curl request to the API
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "http://localhost:8000/api/time-registrations/recent");
+curl_setopt($ch, CURLOPT_URL, "http://localhost:8000/api/recent-time-registrations");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer " . $userId . "|" . $token,
+    "Authorization: Bearer " . $token,
     "Accept: application/json"
 ]);
 
