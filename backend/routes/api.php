@@ -92,16 +92,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/settings', [UserController::class, 'getSettings']);
     Route::put('/user/settings', [UserController::class, 'updateSettings']);
     
-    // Time registrations
-    Route::apiResource('time-registrations', TimeRegistrationController::class);
+    // Time registrations - IMPORTANT: special routes must be defined BEFORE the resource route
+    // Status endpoint
+    Route::get('/time-registrations/status', [TimeRegistrationController::class, 'status']);
+    // Clock in/out endpoints
     Route::post('/time-registrations/clock-in', [TimeRegistrationController::class, 'clockIn']);
     Route::post('/time-registrations/clock-out', [TimeRegistrationController::class, 'clockOut']);
-    Route::get('/time-registrations/status', [TimeRegistrationController::class, 'status']);
-    // Explicitly define the is-clocked-in endpoint to avoid route model binding confusion
+    // Check clock in status
     Route::get('/check-clock-in-status', [TimeRegistrationController::class, 'isClockIn']);
-    
-    // Explicitly define the recent endpoint to avoid route model binding confusion
+    // Recent time registrations
     Route::get('/recent-time-registrations', [TimeRegistrationController::class, 'recent']);
+    // CRUD resource routes - must be AFTER all special routes
+    Route::apiResource('time-registrations', TimeRegistrationController::class);
     
     // Schedule, Report, and OvertimeRule routes have been removed
     

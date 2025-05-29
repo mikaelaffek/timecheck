@@ -99,9 +99,17 @@
               <v-data-table
                 :headers="headers"
                 :items="recentRegistrations"
-                :items-per-page="5"
+                :items-per-page="50"
                 class="elevation-1"
               >
+                <template v-slot:item.user="{ item }">
+                  <div class="d-flex align-center">
+                    <v-avatar size="32" class="mr-2">
+                      <v-img :src="getAvatarUrl(item.user_id || authStore.user.id)"></v-img>
+                    </v-avatar>
+                    <span>{{ item.user_name || authStore.user.name }}</span>
+                  </div>
+                </template>
                 <template v-slot:item.date="{ item }">
                   {{ formatDate(item.date) }}
                 </template>
@@ -123,6 +131,14 @@
                     {{ item.status }}
                   </v-chip>
                 </template>
+                <template v-slot:item.actions="{ item }">
+                  <v-btn icon small color="primary" @click="() => openEditDialog(item)">
+                    <v-icon small>mdi-pencil</v-icon>
+                  </v-btn>
+                  <v-btn icon small color="error" @click="() => confirmDelete(item)">
+                    <v-icon small>mdi-delete</v-icon>
+                  </v-btn>
+                </template>
               </v-data-table>
             </v-card-text>
           </v-card>
@@ -130,6 +146,13 @@
       </v-row>
     </template>
   </v-container>
+
+  <!-- Use the separate TimeRegistrationEditDialog component -->
+  <TimeRegistrationEditDialog
+    v-model="editDialog"
+    :item="editedItem"
+    @saved="onTimeRegistrationSaved"
+  />
 </template>
 
 <script setup>
@@ -137,6 +160,7 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { handleApiError } from '../utils/errorHandler'
+import TimeRegistrationEditDialog from '../components/TimeRegistrationEditDialog.vue'
 
 // State
 const loading = ref(true)
@@ -152,39 +176,48 @@ const stats = ref({
   monthlyHours: 0
 })
 
+// Edit dialog state
+const editDialog = ref(false)
+const editedIndex = ref(-1)
+const editedItem = ref({})
+
+// Delete dialog state
+const deleteDialog = ref(false)
+const itemToDelete = ref(null)
+
 // Get auth store
 const authStore = useAuthStore()
 
 // Table headers
 const headers = [
+  { title: 'User', key: 'user', sortable: false },
   { title: 'Date', key: 'date' },
   { title: 'Clock In', key: 'clock_in' },
   { title: 'Clock Out', key: 'clock_out' },
   { title: 'Hours', key: 'total_hours' },
-  { title: 'Status', key: 'status' }
+  { title: 'Status', key: 'status' },
+  { title: 'Actions', key: 'actions', sortable: false }
 ]
 
-// Format time (HH:MM:SS to HH:MM)
+// Format time using our timezone plugin
 const formatTime = (time) => {
   if (!time) return '-'
-  // If already in HH:MM format, return as is
-  if (time.length === 5) return time
-  // Otherwise parse and format
+  // Use our timezone plugin
   try {
-    const date = new Date(`2000-01-01T${time}`)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // For just a time string, we need to add a date part
+    const dateStr = '2000-01-01'
+    return $tz(`${dateStr}T${time}`, 'HH:mm')
   } catch (e) {
     console.error('Error formatting time:', e)
     return time.substring(0, 5)
   }
 }
 
-// Format date (YYYY-MM-DD to DD/MM/YYYY)
+// Format date using our timezone plugin
 const formatDate = (dateString) => {
   if (!dateString) return '-'
   try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString()
+    return $tz(dateString, 'YYYY-MM-DD')
   } catch (e) {
     console.error('Error formatting date:', e)
     return dateString
@@ -211,11 +244,18 @@ const formatHoursAndMinutes = (totalHours) => {
   return `${hours}h ${minutes}m`
 }
 
-// Update current time
+// Get avatar URL for user
+const getAvatarUrl = (userId) => {
+  return `https://i.pravatar.cc/150?u=${userId}`
+}
+
+// Update current time using our timezone plugin
 const updateCurrentTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  currentDate.value = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  // Get current timestamp in ISO format
+  const now = new Date().toISOString()
+  // Format using our timezone plugin
+  currentTime.value = $tz(now, 'HH:mm')
+  currentDate.value = $tz(now, 'dddd, MMMM D, YYYY')
 }
 
 // Calculate statistics
@@ -265,7 +305,7 @@ const fetchRecentRegistrations = async () => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }
     
-    const response = await axios.get('/api/recent-time-registrations')
+    const response = await axios.get('/api/recent-time-registrations?limit=50')
     console.log('Recent registrations response:', response.data)
     
     // Ensure we're handling the response data correctly
@@ -366,6 +406,52 @@ const clockOut = async () => {
   }
 }
 
+// Confirm delete dialog
+const confirmDelete = (item) => {
+  itemToDelete.value = item;
+  deleteDialog.value = true;
+};
+
+// Delete the selected time registration
+const deleteTimeRegistration = async () => {
+  if (!itemToDelete.value) return;
+  try {
+    await axios.delete(`/api/time-registrations/${itemToDelete.value.id}`);
+    // Refresh the recent registrations
+    await fetchRecentRegistrations();
+    deleteDialog.value = false;
+    itemToDelete.value = null;
+  } catch (error) {
+    handleApiError(error, 'Dashboard.deleteTimeRegistration');
+    alert('Failed to delete time registration.');
+    deleteDialog.value = false;
+    itemToDelete.value = null;
+  }
+};
+
+// Function to open the edit dialog
+const openEditDialog = (item) => {
+  // Create a copy of the item to avoid modifying the original directly
+  editedItem.value = JSON.parse(JSON.stringify(item))
+  
+  // Open the dialog
+  editDialog.value = true
+}
+
+// Handle the saved event from the TimeRegistrationEditDialog component
+const onTimeRegistrationSaved = async (updatedItem) => {
+  // Find the item in the recentRegistrations array
+  const index = recentRegistrations.value.findIndex(reg => reg.id === updatedItem.id)
+  
+  // Update the local data if found
+  if (index > -1) {
+    Object.assign(recentRegistrations.value[index], updatedItem)
+  }
+  
+  // Refresh the data to ensure everything is up to date
+  await fetchRecentRegistrations()
+}
+
 // Initialize
 onMounted(async () => {
   // Update time immediately
@@ -377,4 +463,35 @@ onMounted(async () => {
   // Fetch data
   await fetchRecentRegistrations()
 })
+
+// Return all variables and functions to be used in the template
+return {
+  loading,
+  clockInLoading,
+  clockOutLoading,
+  currentTime,
+  currentDate,
+  isClockedIn,
+  lastClockIn,
+  recentRegistrations,
+  stats,
+  headers,
+  formatTime,
+  formatDate,
+  getStatusColor,
+  formatHoursAndMinutes,
+  getAvatarUrl,
+  clockIn,
+  clockOut,
+  authStore,
+  // Edit dialog
+  editDialog,
+  editedItem,
+  openEditDialog,
+  onTimeRegistrationSaved,
+  deleteDialog,
+  itemToDelete,
+  confirmDelete,
+  deleteTimeRegistration
+}
 </script>

@@ -5,6 +5,7 @@ import router from './router'
 import axios from 'axios'
 import { setupGlobalErrorHandlers } from './utils/errorHandler'
 import { initializeErrorHandlers, logError } from './utils/errorLogger'
+import timezonePlugin from './plugins/timezone'
 
 // Vuetify
 import 'vuetify/styles'
@@ -104,5 +105,6 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
+app.use(timezonePlugin)
 
 app.mount('#app')
