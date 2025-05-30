@@ -48,17 +48,20 @@ services:
 
   # Vue Frontend Service
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: node:18-alpine
     platform: linux/arm64  # Optimized for Apple M1
     restart: always
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     environment:
       - VITE_API_URL=http://localhost:8000/api
+      - VITE_SKIP_NATIVE=true
+      - ROLLUP_SKIP_NODEJS=true
+      - ESBUILD_BINARY_PATH=esbuild
     depends_on:
       - backend
       

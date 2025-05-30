@@ -429,18 +429,23 @@ class TimeRegistrationController extends Controller
         }
         
         // Check for any overlapping registrations
-        return $query->where(function ($q) use ($clockIn, $clockOut) {
+        // We need to wrap all the OR conditions in a single where clause to maintain proper scope
+        return $query->where(function($q) use ($clockIn, $clockOut) {
             // New registration starts during an existing one
-            $q->where('clock_in', '<=', $clockIn)
-              ->where('clock_out', '>=', $clockIn);
-        })->orWhere(function ($q) use ($clockIn, $clockOut) {
+            $q->where(function ($subQ) use ($clockIn, $clockOut) {
+                $subQ->where('clock_in', '<=', $clockIn)
+                     ->where('clock_out', '>=', $clockIn);
+            })
             // New registration ends during an existing one
-            $q->where('clock_in', '<=', $clockOut)
-              ->where('clock_out', '>=', $clockOut);
-        })->orWhere(function ($q) use ($clockIn, $clockOut) {
+            ->orWhere(function ($subQ) use ($clockIn, $clockOut) {
+                $subQ->where('clock_in', '<=', $clockOut)
+                     ->where('clock_out', '>=', $clockOut);
+            })
             // New registration completely contains an existing one
-            $q->where('clock_in', '>=', $clockIn)
-              ->where('clock_out', '<=', $clockOut);
+            ->orWhere(function ($subQ) use ($clockIn, $clockOut) {
+                $subQ->where('clock_in', '>=', $clockIn)
+                     ->where('clock_out', '<=', $clockOut);
+            });
         })->first();
     }
 }

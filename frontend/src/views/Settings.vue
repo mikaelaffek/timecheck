@@ -196,7 +196,7 @@
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+import { useApi } from '../composables/useApi'
 
 // OvertimeRule interface removed
 
@@ -206,18 +206,16 @@ export default defineComponent({
     const authStore = useAuthStore()
     const router = useRouter()
     const route = useRoute()
+    
+    // Initialize our API composable
+    const { loading: apiLoading, snackbar, get, post, put, del } = useApi()
+    
     const loading = ref(false)
     const isSavingProfile = ref(false)
     const isChangingPassword = ref(false)
     const isSavingSettings = ref(false)
     
-    // Snackbar state
-    const snackbar = ref({
-      show: false,
-      text: '',
-      color: 'success',
-      timeout: 3000
-    })
+    // Using snackbar from the API composable
     
     // Fix for navigation issues
     const handleNavigation = (path: string) => {
@@ -285,87 +283,102 @@ export default defineComponent({
     
     const fetchUserProfile = async () => {
       try {
-        const response = await axios.get('/api/user')
-        profile.value.name = response.data.name
-        profile.value.email = response.data.email
-        profile.value.personalId = response.data.personal_id
+        const data = await get('/api/user')
+        if (data) {
+          profile.value.name = data.name
+          profile.value.email = data.email
+          profile.value.personalId = data.personal_id
+        }
       } catch (error) {
-        console.error('Error fetching user profile:', error)
+        // Error handling is now done by the API composable
       }
     }
     
     const fetchUserSettings = async () => {
       try {
-        const response = await axios.get('/api/user/settings')
-        settings.value = { ...settings.value, ...response.data }
+        const data = await get('/api/user/settings')
+        if (data) {
+          settings.value = { ...settings.value, ...data }
+        }
       } catch (error) {
-        console.error('Error fetching user settings:', error)
+        // Error handling is now done by the API composable
       }
     }
     
     // fetchOvertimeRules function removed
     
     const saveProfile = async () => {
+      // Validate the form before submitting
+      if (!profileForm.value || !profileForm.value.validate()) {
+        return
+      }
+      
       isSavingProfile.value = true
       try {
-        await axios.put('/api/user/profile', {
+        const data = await put('/api/user/profile', {
           name: profile.value.name,
           email: profile.value.email
+        }, {
+          showSuccessNotification: true,
+          successMessage: 'Profile updated successfully'
         })
-        // Update the user in the auth store
-        await authStore.checkAuth()
         
-        // Reset form validation
-        if (profileForm.value) {
-          profileForm.value.resetValidation()
+        if (data) {
+          // Update the user in the auth store
+          await authStore.checkAuth()
+          
+          // Reset form validation
+          if (profileForm.value) {
+            profileForm.value.resetValidation()
+          }
         }
-        
-        // Show success notification
-        snackbar.value.text = 'Profile updated successfully'
-        snackbar.value.color = 'success'
-        snackbar.value.show = true
       } catch (error) {
-        console.error('Error saving profile:', error)
-        
-        // Show error notification
-        snackbar.value.text = 'Failed to update profile'
-        snackbar.value.color = 'error'
-        snackbar.value.show = true
+        // Error handling is now done by the API composable
       } finally {
         isSavingProfile.value = false
       }
     }
     
     const changePassword = async () => {
+      // Validate the form before submitting
+      if (!passwordForm.value || !passwordForm.value.validate()) {
+        return
+      }
+      
       isChangingPassword.value = true
       try {
-        await axios.put('/api/user/password', {
+        const data = await put('/api/user/password', {
           current_password: password.value.current,
           new_password: password.value.new,
           new_password_confirmation: password.value.confirm
+        }, {
+          showSuccessNotification: true,
+          successMessage: 'Password changed successfully'
         })
         
-        // Reset the form
-        password.value.current = ''
-        password.value.new = ''
-        password.value.confirm = ''
-        
-        // Reset form validation
-        if (passwordForm.value) {
-          passwordForm.value.resetValidation()
+        if (data) {
+          // Reset the form
+          password.value.current = ''
+          password.value.new = ''
+          password.value.confirm = ''
+          
+          // Reset form validation
+          if (passwordForm.value) {
+            passwordForm.value.resetValidation()
+          }
         }
-        
-        // Show success notification
-        snackbar.value.text = 'Password changed successfully'
-        snackbar.value.color = 'success'
-        snackbar.value.show = true
       } catch (error) {
-        console.error('Error changing password:', error)
-        
-        // Show error notification
-        snackbar.value.text = 'Failed to change password'
-        snackbar.value.color = 'error'
-        snackbar.value.show = true
+        // Handle validation errors specifically
+        if (error.response && error.response.status === 422) {
+          const errors = error.response.data.errors
+          
+          // Check for specific field errors
+          if (errors && errors.current_password) {
+            snackbar.value.text = errors.current_password[0] || 'Current password is incorrect'
+            snackbar.value.color = 'error'
+            snackbar.value.show = true
+          }
+        }
       } finally {
         isChangingPassword.value = false
       }
@@ -374,19 +387,12 @@ export default defineComponent({
     const saveSettings = async () => {
       isSavingSettings.value = true
       try {
-        await axios.put('/api/user/settings', settings.value)
-        
-        // Show success notification
-        snackbar.value.text = 'Settings saved successfully'
-        snackbar.value.color = 'success'
-        snackbar.value.show = true
+        const data = await put('/api/user/settings', settings.value, {
+          showSuccessNotification: true,
+          successMessage: 'Settings saved successfully'
+        })
       } catch (error) {
-        console.error('Error saving settings:', error)
-        
-        // Show error notification
-        snackbar.value.text = 'Failed to save settings'
-        snackbar.value.color = 'error'
-        snackbar.value.show = true
+        // Error handling is now done by the API composable
       } finally {
         isSavingSettings.value = false
       }

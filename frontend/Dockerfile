@@ -3,13 +3,18 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
+# Set environment variables to skip native modules
+ENV ROLLUP_SKIP_NODEJS=true
+ENV VITE_SKIP_NATIVE=true
+ENV ESBUILD_BINARY_PATH=esbuild
+
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
 # Install dependencies with special handling for ARM64 architecture
 RUN apk add --no-cache python3 make g++ \
-    && npm install --platform=linux --arch=x64 \
-    && npm rebuild \
+    && npm config set legacy-peer-deps true \
+    && npm install --no-optional \
     && npm cache clean --force
 
 # Copy project files

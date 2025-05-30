@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth'
 // Views
 const LandingPage = () => import('../views/LandingPage.vue')
 const Login = () => import('../views/Login.vue')
-const Dashboard = () => import('../views/Dashboard.vue')
+const Dashboard = () => import('../views/DashboardSimple.vue') // Using the simplified version
 const TimeRegistrations = () => import('../views/TimeRegistrations.vue')
 const AdminTimeRegistrations = () => import('../views/AdminTimeRegistrations.vue')
 const Settings = () => import('../views/Settings.vue')

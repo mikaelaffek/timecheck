@@ -1,5 +1,16 @@
 <template>
   <div>
+    <!-- Snackbar for notifications -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="snackbar.timeout"
+    >
+      {{ snackbar.text }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar.show = false">Close</v-btn>
+      </template>
+    </v-snackbar>
     <loading-overlay :show="loading" message="Loading time registrations..."></loading-overlay>
     <v-row>
       <v-col cols="12">
@@ -310,6 +321,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
+import { useApi } from '../composables/useApi'
 import axios from 'axios'
 import LoadingOverlay from '../components/LoadingOverlay.vue'
 
@@ -356,6 +368,9 @@ export default defineComponent({
     LoadingOverlay
   },
   setup() {
+    // Initialize our API composable
+    const { loading: apiLoading, snackbar, get, post, put, del } = useApi()
+    
     const loading = ref(false)
     const search = ref('')
     const dateFilter = ref('')
@@ -393,31 +408,27 @@ export default defineComponent({
       return timeRegistrations.value.filter(reg => reg.date === dateFilter.value)
     })
     
+    // Use the global timezone plugin
     const formatDate = (dateString: string) => {
-      const date = new Date(dateString)
-      return date.toLocaleDateString()
+      if (!dateString) return ''
+      return $tz(dateString, 'YYYY-MM-DD')
     }
     
     const formatTime = (timeString: string) => {
       if (!timeString) return '-'
-      // If already in HH:MM format, return as is
-      if (timeString.length === 5) return timeString
-      try {
-        const date = new Date(`2000-01-01T${timeString}`)
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      } catch (e) {
-        console.error('Error formatting time:', e)
-        return timeString.substring(0, 5)
-      }
+      // Format times consistently using our timezone plugin
+      // For a time-only string, we need to add a date part for proper UTC parsing
+      const dateStr = '2000-01-01'
+      return $tz(`${dateStr}T${timeString}`, 'HH:mm')
     }
     
     const fetchTimeRegistrations = async () => {
       loading.value = true
       try {
-        const response = await axios.get('/api/time-registrations')
-        timeRegistrations.value = response.data
-      } catch (error) {
-        console.error('Error fetching time registrations:', error)
+        const data = await get('/api/time-registrations')
+        if (data) {
+          timeRegistrations.value = data
+        }
       } finally {
         loading.value = false
       }
@@ -444,20 +455,40 @@ export default defineComponent({
     const saveTimeRegistration = async () => {
       loading.value = true
       try {
-        await axios.put(`/api/time-registrations/${editedItem.value.id}`, {
+        // Format the time values properly using our time utilities
+        // Just add seconds to the user input without timezone conversion
+        const clock_in = editedItem.value.clock_in_time ? 
+          `${editedItem.value.clock_in_time.trim()}:00` : null;
+          
+        const clock_out = editedItem.value.clock_out_time ? 
+          `${editedItem.value.clock_out_time.trim()}:00` : null;
+          
+        // Use our API composable to make the request
+        const data = await put(`/api/time-registrations/${editedItem.value.id}`, {
           date: editedItem.value.date,
-          clock_in: `${editedItem.value.clock_in_time}:00`,
-          clock_out: editedItem.value.clock_out_time ? `${editedItem.value.clock_out_time}:00` : null,
+          clock_in,
+          clock_out,
           latitude: editedItem.value.latitude,
           longitude: editedItem.value.longitude,
           notes: editedItem.value.notes
-        })
+        }, {
+          showSuccessNotification: true,
+          successMessage: 'Time registration updated successfully'
+        });
         
-        // Refresh the data
-        await fetchTimeRegistrations()
-        editDialog.value = false
+        if (data) {
+          // Refresh the data
+          await fetchTimeRegistrations()
+          editDialog.value = false
+        }
       } catch (error) {
-        console.error('Error saving time registration:', error)
+        // Error handling is now done by the API composable
+        if (error.response && error.response.status === 422) {
+          // For validation errors, show a specific message
+          snackbar.value.text = error.response.data.message || 'Cannot save: This time overlaps with another registration.'
+          snackbar.value.color = 'warning'
+          snackbar.value.show = true
+        }
       } finally {
         loading.value = false
       }
@@ -488,6 +519,41 @@ export default defineComponent({
       headers,
       editedItem,
       selectedLocation,
+      // Add snackbar for notifications
+      snackbar,
+      formatDate,
+      formatTime,
+      clearFilters,
+      editTimeRegistration,
+      saveTimeRegistration,
+      showLocationOnMap
+    }
+  }
+})
+</script>
+
+      // using the coordinates from the selected item
+    }
+    
+    onMounted(() => {
+      fetchTimeRegistrations()
+    })
+    
+    return {
+      loading,
+      search,
+      dateFilter,
+      dateMenu,
+      dateEditMenu,
+      editDialog,
+      mapDialog,
+      timeRegistrations,
+      filteredRegistrations,
+      headers,
+      editedItem,
+      selectedLocation,
+      // Add snackbar for notifications
+      snackbar,
       formatDate,
       formatTime,
       clearFilters,

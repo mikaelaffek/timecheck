@@ -3,8 +3,8 @@
     <!-- Left side with logo and welcome message -->
     <div class="login-left-panel">
       <div class="login-logo-container">
-        <img src="/logo-white-bg.svg" alt="Timetjek Logo" height="80" />
-        <h1 class="login-welcome-text">Welcome to Timetjek</h1>
+        <img src="/timecheck-logo.svg" alt="Timecheck Logo" height="80" />
+        <h1 class="login-welcome-text">Welcome to Timecheck</h1>
         <p class="login-subtitle">Your complete time management solution</p>
       </div>
     </div>

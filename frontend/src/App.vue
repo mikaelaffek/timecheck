@@ -3,7 +3,7 @@
     <!-- Top App Bar -->
     <v-app-bar app dark v-if="hasToken" elevation="1">
       <div class="d-flex align-center">
-        <img src="/logo-white-bg.svg" alt="Timetjek Logo" height="40" class="ml-4" />
+        <img src="/timecheck-logo.svg" alt="Timecheck Logo" height="40" class="ml-4" />
       </div>
       <v-spacer></v-spacer>
       <v-btn icon class="mr-2">
@@ -104,11 +104,11 @@
           </v-list-item-content>
         </v-list-item>
         
-        <!-- Divider before logout -->
-        <v-divider class="my-2"></v-divider>
+        <!-- Spacer to push logout to bottom -->
+        <v-spacer></v-spacer>
         
-        <!-- Logout Button -->
-        <v-list-item @click="logout" class="py-2">
+        <!-- Logout button at the bottom -->
+        <v-list-item @click="logout" link class="py-2 mt-auto">
           <v-list-item-icon>
             <v-icon>mdi-logout</v-icon>
           </v-list-item-icon>
@@ -130,8 +130,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'App',
@@ -145,26 +145,20 @@ export default defineComponent({
     const isManager = computed(() => authStore.user?.role === 'manager')
     const hasToken = computed(() => !!localStorage.getItem('token'))
 
-    const navigateTo = (path: string) => {
-      console.log('Navigation requested to:', path)
-      // Check if we're already on the requested path
-      if (router.currentRoute.value.path === path) {
-        console.log('Already on requested path, no navigation needed')
-        return
-      }
-      
-      // Use push instead of replace for better history management
-      router.push(path).catch(err => {
-        // Ignore navigation duplicated errors as they're expected
-        if (err.name !== 'NavigationDuplicated') {
-          console.error('Navigation error:', err)
-        }
-      })
-    }
-
     const logout = async () => {
       await authStore.logout()
       router.push('/login')
+    }
+    
+    // Navigation function to prevent redundant navigation
+    const navigateTo = (path) => {
+      // Check if we're already on the requested path
+      if (router.currentRoute.value.path !== path) {
+        console.log(`Navigating to ${path}`)
+        router.push(path)
+      } else {
+        console.log(`Already on ${path}, skipping navigation`)
+      }
     }
     
     onMounted(async () => {
@@ -181,8 +175,8 @@ export default defineComponent({
       isAdmin,
       isManager,
       hasToken,
-      navigateTo,
-      logout
+      logout,
+      navigateTo // Add the navigation function to the template
     }
   }
 })
