@@ -7,6 +7,7 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Requests\User\UpdatePasswordRequest;
+use App\Http\Requests\User\UpdateSettingsRequest;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
@@ -131,7 +132,7 @@ class UserController extends Controller
     /**
      * Update the user's settings.
      */
-    public function updateSettings(Request $request)
+    public function updateSettings(UpdateSettingsRequest $request)
     {
         $user = $request->user();
         $settings = $user->settings;
@@ -143,14 +144,7 @@ class UserController extends Controller
             ]);
         }
         
-        $request->validate([
-            'enable_notifications' => 'sometimes|boolean',
-            'auto_clock_out' => 'sometimes|boolean',
-            'default_view' => 'sometimes|string|in:dashboard,time-registrations,reports',
-            'time_format' => 'sometimes|string|in:12h,24h',
-        ]);
-        
-        $settings->update($request->all());
+        $settings->update($request->validated());
         
         return response()->json($settings);
     }
