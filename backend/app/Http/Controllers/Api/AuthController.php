@@ -3,34 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterUserRequest;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
      * Handle a login request to the application.
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'personal_id' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        // Make personal_id case-insensitive by using whereRaw with UPPER function
-        $user = User::whereRaw('UPPER(personal_id) = ?', [strtoupper($request->personal_id)])->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'personal_id' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-
+        $user = $request->authenticate();
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -60,19 +48,10 @@ class AuthController extends Controller
     /**
      * Register a new user.
      */
-    public function register(Request $request)
+    public function register(RegisterUserRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'personal_id' => 'required|string|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'personal_id' => $request->personal_id,
+            ...$request->only(['name', 'email', 'personal_id']),
             'password' => Hash::make($request->password),
             'role' => 'employee', // Default role
         ]);
