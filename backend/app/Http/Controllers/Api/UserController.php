@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Requests\User\UpdatePasswordRequest;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -16,12 +19,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
-        
-        // Only admins and managers can view all users
-        if (!$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('viewAny', User::class);
         
         $query = User::query();
         
@@ -36,29 +34,11 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $user = $request->user();
-        
-        // Only admins can create users
-        if (!$user->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'personal_id' => 'required|string|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => 'required|in:employee,manager,admin',
-        ]);
-        
         $newUser = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'personal_id' => $request->personal_id,
+            ...$request->only(['name', 'email', 'personal_id', 'role']),
             'password' => Hash::make($request->password),
-            'role' => $request->role,
         ]);
         
         // Create default user settings
@@ -74,12 +54,7 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user)
     {
-        $currentUser = $request->user();
-        
-        // Users can view their own profile, admins and managers can view any profile
-        if ($user->id !== $currentUser->id && !$currentUser->isAdmin() && !$currentUser->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $user);
         
         return response()->json($user);
     }
@@ -87,39 +62,9 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $currentUser = $request->user();
-        
-        // Users can update their own profile, admins can update any profile
-        if ($user->id !== $currentUser->id && !$currentUser->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        
-        $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => [
-                'sometimes',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-            'personal_id' => [
-                'sometimes',
-                'string',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-            'role' => 'sometimes|in:employee,manager,admin',
-        ]);
-        
-        // Only admins can change roles
-        if ($request->has('role') && !$currentUser->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized to change role'], 403);
-        }
-        
-        $user->update($request->all());
+        $user->update($request->validated());
         
         return response()->json($user);
     }
@@ -129,12 +74,7 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user)
     {
-        $currentUser = $request->user();
-        
-        // Only admins can delete users, and they cannot delete themselves
-        if (!$currentUser->isAdmin() || $user->id === $currentUser->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $user);
         
         $user->delete();
         
@@ -144,22 +84,11 @@ class UserController extends Controller
     /**
      * Update the user's profile.
      */
-    public function updateProfile(Request $request)
+    public function updateProfile(UpdateProfileRequest $request)
     {
         $user = $request->user();
         
-        $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => [
-                'sometimes',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-        ]);
-        
-        $user->update($request->only(['name', 'email']));
+        $user->update($request->validated());
         
         return response()->json($user);
     }
@@ -167,19 +96,12 @@ class UserController extends Controller
     /**
      * Update the user's password.
      */
-    public function updatePassword(Request $request)
+    public function updatePassword(UpdatePasswordRequest $request)
     {
         $user = $request->user();
         
-        $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-        
-        // Check current password
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['message' => 'Current password is incorrect'], 422);
-        }
+        // Validate current password
+        $request->validateCurrentPassword();
         
         $user->update([
             'password' => Hash::make($request->new_password),
