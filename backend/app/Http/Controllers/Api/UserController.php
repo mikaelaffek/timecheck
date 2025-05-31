@@ -8,6 +8,8 @@ use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Requests\User\UpdatePasswordRequest;
 use App\Http\Requests\User\UpdateSettingsRequest;
+use App\Http\Resources\UserResource;
+use App\Http\Resources\UserSettingResource;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
@@ -29,7 +31,8 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
         
-        return $query->orderBy('name')->paginate($request->per_page ?? 15);
+        $users = $query->orderBy('name')->paginate($request->per_page ?? 15);
+        return UserResource::collection($users);
     }
 
     /**
@@ -47,7 +50,7 @@ class UserController extends Controller
             'user_id' => $newUser->id,
         ]);
         
-        return response()->json($newUser, 201);
+        return (new UserResource($newUser))->response()->setStatusCode(201);
     }
 
     /**
@@ -57,7 +60,10 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
         
-        return response()->json($user);
+        // Load settings if needed
+        $user->load('settings');
+        
+        return new UserResource($user);
     }
 
     /**
@@ -67,7 +73,7 @@ class UserController extends Controller
     {
         $user->update($request->validated());
         
-        return response()->json($user);
+        return new UserResource($user);
     }
 
     /**
@@ -91,7 +97,7 @@ class UserController extends Controller
         
         $user->update($request->validated());
         
-        return response()->json($user);
+        return new UserResource($user);
     }
     
     /**
@@ -126,7 +132,7 @@ class UserController extends Controller
             ]);
         }
         
-        return response()->json($settings);
+        return new UserSettingResource($settings);
     }
     
     /**
@@ -146,6 +152,6 @@ class UserController extends Controller
         
         $settings->update($request->validated());
         
-        return response()->json($settings);
+        return new UserSettingResource($settings);
     }
 }
