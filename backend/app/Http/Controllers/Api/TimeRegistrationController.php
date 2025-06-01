@@ -2,8 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\TimeRegistrationEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TimeRegistration\ClockInRequest;
+use App\Http\Requests\TimeRegistration\ClockOutRequest;
+use App\Http\Requests\TimeRegistration\IndexTimeRegistrationRequest;
+use App\Http\Requests\TimeRegistration\RecentTimeRegistrationRequest;
+use App\Http\Requests\TimeRegistration\StatusRequest;
+use App\Http\Requests\TimeRegistration\StoreTimeRegistrationRequest;
+use App\Http\Requests\TimeRegistration\UpdateTimeRegistrationRequest;
+use App\Http\Resources\RecentTimeRegistrationResource;
+use App\Http\Resources\TimeRegistrationResource;
 use App\Models\TimeRegistration;
+use App\Models\User;
+use App\Services\TimeRegistrationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,9 +24,21 @@ use Illuminate\Support\Facades\Config;
 class TimeRegistrationController extends Controller
 {
     /**
+     * @var TimeRegistrationService
+     */
+    protected $timeRegistrationService;
+    
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(TimeRegistrationService $timeRegistrationService)
+    {
+        $this->timeRegistrationService = $timeRegistrationService;
+    }
+    /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(IndexTimeRegistrationRequest $request)
     {
         $user = $request->user();
         $query = TimeRegistration::query();
@@ -46,17 +70,8 @@ class TimeRegistrationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreTimeRegistrationRequest $request)
     {
-        $request->validate([
-            'user_id' => 'sometimes|exists:users,id',
-            'date' => 'required|date',
-            'clock_in' => 'required|date_format:H:i:s',
-            'clock_out' => 'nullable|date_format:H:i:s|after:clock_in',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'notes' => 'nullable|string',
-        ]);
         
         $user = $request->user();
         $userId = $request->user_id ?? $user->id;
@@ -67,7 +82,7 @@ class TimeRegistrationController extends Controller
         }
         
         // Check for overlapping time registrations
-        $overlapping = $this->checkOverlappingRegistrations(
+        $overlapping = $this->timeRegistrationService->checkOverlappingRegistrations(
             $userId, 
             $request->date, 
             $request->clock_in, 
@@ -83,9 +98,7 @@ class TimeRegistrationController extends Controller
         
         $timeRegistration = TimeRegistration::create([
             'user_id' => $userId,
-            'date' => $request->date,
-            'clock_in' => $request->clock_in,
-            'clock_out' => $request->clock_out,
+            ...$request->only(['date', 'clock_in', 'clock_out', 'description']),
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'notes' => $request->notes,
@@ -113,17 +126,8 @@ class TimeRegistrationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, TimeRegistration $timeRegistration)
+    public function update(UpdateTimeRegistrationRequest $request, TimeRegistration $timeRegistration)
     {
-        $request->validate([
-            'date' => 'sometimes|date',
-            'clock_in' => 'sometimes|date_format:H:i:s',
-            'clock_out' => 'nullable|date_format:H:i:s|after:clock_in',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'notes' => 'nullable|string',
-            'status' => 'sometimes|in:pending,approved,rejected',
-        ]);
         
         $user = $request->user();
         
@@ -143,7 +147,7 @@ class TimeRegistrationController extends Controller
             $clockIn = $request->clock_in ?? $timeRegistration->clock_in;
             $clockOut = $request->clock_out ?? $timeRegistration->clock_out;
             
-            $overlapping = $this->checkOverlappingRegistrations(
+            $overlapping = $this->timeRegistrationService->checkOverlappingRegistrations(
                 $timeRegistration->user_id, 
                 $date, 
                 $clockIn, 
@@ -184,23 +188,19 @@ class TimeRegistrationController extends Controller
     /**
      * Clock in the user.
      */
-    public function clockIn(Request $request)
+    public function clockIn(ClockInRequest $request)
     {
         $user = $request->user();
         $now = Carbon::now();
         $today = $now->toDateString();
         
         // Check if user is already clocked in
-        $activeRegistration = TimeRegistration::where('user_id', $user->id)
-            ->whereDate('date', $today)
-            ->whereNull('clock_out')
-            ->first();
+        $activeRegistration = $this->timeRegistrationService->getUserActiveTimeRegistration($user->id);
             
-        \Log::info('Checking if already clocked in', [
-            'user_id' => $user->id,
-            'today' => $today,
+        event(new TimeRegistrationEvent('checking_already_clocked_in', [
+            'date' => $today,
             'is_clocked_in' => (bool)$activeRegistration
-        ]);
+        ], $user));
             
         if ($activeRegistration) {
             return response()->json([
@@ -209,18 +209,11 @@ class TimeRegistrationController extends Controller
             ], 422);
         }
         
-        // Get location data if available
-        $latitude = $request->latitude;
-        $longitude = $request->longitude;
-        
-        $timeRegistration = TimeRegistration::create([
-            'user_id' => $user->id,
-            'date' => $today,
-            'clock_in' => $now->format('H:i:s'),
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'status' => 'pending',
-        ]);
+        // Use the service to clock in the user
+        $timeRegistration = $this->timeRegistrationService->clockInUser(
+            $user->id,
+            $request->only(['latitude', 'longitude'])
+        );
         
         return response()->json($timeRegistration, 201);
     }
@@ -233,81 +226,58 @@ class TimeRegistrationController extends Controller
         $user = $request->user();
         $today = Carbon::now()->toDateString();
         
-        \Log::info('Checking if user is clocked in', [
-            'user_id' => $user->id,
+        event(new TimeRegistrationEvent('checking_clock_in', [
             'today' => $today
-        ]);
+        ], $user));
         
-        // Find any active registration for today (no clock-out time)
-        // Use whereDate to compare just the date portion
-        $activeRegistration = TimeRegistration::where('user_id', $user->id)
-            ->whereDate('date', $today)
-            ->whereNull('clock_out')
-            ->first();
+        // Get status from service
+        $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
+        $activeRegistration = $status['time_registration'];
+        $clockInTime = $status['clock_in_time'];
             
-        // Log the query for debugging
-        \Log::info('Query details', [
-            'sql' => TimeRegistration::where('user_id', $user->id)
-                ->whereDate('date', $today)
-                ->whereNull('clock_out')
-                ->toSql(),
-            'bindings' => [
-                'user_id' => $user->id,
-                'date' => $today
-            ]
-        ]);
-        
         if ($activeRegistration) {
-            \Log::info('User is clocked in', [
-                'user_id' => $user->id,
-                'time_registration_id' => $activeRegistration->id,
-                'clock_in' => $activeRegistration->clock_in
-            ]);
+            event(new TimeRegistrationEvent('user_clocked_in', [], $user, $activeRegistration));
             
             return response()->json([
-                'clocked_in' => true,
-                'time_registration' => $activeRegistration
+                'status' => [
+                    'clocked_in' => true,
+                    'time_registration' => $activeRegistration,
+                    'clock_in_time' => $clockInTime
+                ]
             ]);
         }
         
-        \Log::info('User is not clocked in', [
-            'user_id' => $user->id
-        ]);
+        event(new TimeRegistrationEvent('user_not_clocked_in', [], $user));
         
         return response()->json([
-            'clocked_in' => false
+            'status' => [
+                'clocked_in' => false,
+                'clock_in_time' => null
+            ]
         ]);
     }
     
     /**
      * Clock out the user.
      */
-    public function clockOut(Request $request)
+    public function clockOut(ClockOutRequest $request)
     {
         $user = $request->user();
         $now = Carbon::now();
         $today = $now->toDateString();
         
-        // Find the active time registration
-        $activeRegistration = TimeRegistration::where('user_id', $user->id)
-            ->where('date', $today)
-            ->whereNull('clock_out')
-            ->first();
+        // Find the active time registration using service
+        $activeRegistration = $this->timeRegistrationService->getUserActiveTimeRegistration($user->id);
             
         if (!$activeRegistration) {
             return response()->json(['message' => 'No active clock-in found'], 404);
         }
         
-        // Get location data if available
-        $latitude = $request->latitude;
-        $longitude = $request->longitude;
-        
-        // Update with clock-out time
-        $activeRegistration->update([
-            'clock_out' => $now->format('H:i:s'),
-            'latitude' => $latitude ?? $activeRegistration->latitude,
-            'longitude' => $longitude ?? $activeRegistration->longitude,
-        ]);
+        // Use the service to clock out the user
+        $activeRegistration = $this->timeRegistrationService->clockOutUser(
+            $activeRegistration,
+            $request->only(['latitude', 'longitude'])
+        );
         
         return response()->json($activeRegistration);
     }
@@ -315,37 +285,27 @@ class TimeRegistrationController extends Controller
     /**
      * Get the current clock-in status for the user.
      */
-    public function status(Request $request)
+    public function status(StatusRequest $request)
     {
         $user = $request->user();
-        $now = Carbon::now();
-        $today = $now->toDateString();
         
-        // Find the active time registration
-        $activeRegistration = TimeRegistration::where('user_id', $user->id)
-            ->where('date', $today)
-            ->whereNull('clock_out')
-            ->first();
-            
-        // Format the clock-in time as a string for consistent frontend display
-        $clockInTime = null;
-        if ($activeRegistration && $activeRegistration->clock_in) {
-            // Format as HH:MM:SS string
-            $clockInTime = $activeRegistration->clock_in->format('H:i:s');
-        }
+        // Get the user's time registration status from the service
+        $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
         
         return response()->json([
-            'is_clocked_in' => $activeRegistration ? true : false,
-            'clock_in_time' => $clockInTime,
-            'date' => $today,
-            'time_registration_id' => $activeRegistration ? $activeRegistration->id : null
+            'status' => [
+                'clocked_in' => $status['clocked_in'],
+                'time_registration' => $status['time_registration'],
+                'clock_in_time' => $status['clock_in_time'],
+                'duration' => $status['duration'],
+            ]
         ]);
     }
     
     /**
      * Get recent time registrations for the user.
      */
-    public function recent(Request $request)
+    public function recent(RecentTimeRegistrationRequest $request)
     {
         $user = $request->user();
         $limit = $request->limit ?? 5;
@@ -357,95 +317,14 @@ class TimeRegistrationController extends Controller
             ->limit($limit)
             ->get();
             
-        // Format the time values to HH:MM format and calculate total hours
-        $formattedRegistrations = $registrations->map(function ($registration) {
-            $data = $registration->toArray();
+        // Use the RecentTimeRegistrationResource to format the data
+        $formattedRegistrations = RecentTimeRegistrationResource::collection($registrations)->resolve();
             
-            // Format clock_in time to HH:MM
-            if (isset($data['clock_in'])) {
-                $clockIn = Carbon::parse($data['clock_in']);
-                $data['clock_in'] = $clockIn->format('H:i');
-            }
-            
-            // Format clock_out time to HH:MM if it exists
-            if (isset($data['clock_out']) && $data['clock_out']) {
-                $clockOut = Carbon::parse($data['clock_out']);
-                $data['clock_out'] = $clockOut->format('H:i');
-                
-                // Calculate total hours and minutes if both clock_in and clock_out exist
-                if (isset($clockIn)) {
-                    $diffInMinutes = $clockOut->diffInMinutes($clockIn, true);
-                    $hours = floor($diffInMinutes / 60);
-                    $minutes = $diffInMinutes % 60;
-                    
-                    // Format as hours and minutes
-                    $data['total_hours'] = $hours . 'h ' . $minutes . 'm';
-                    
-                    // Also include the raw value for sorting/calculations
-                    $data['total_hours_decimal'] = round($diffInMinutes / 60, 2);
-                }
-            } else {
-                // If no clock_out, set total_hours to null
-                $data['total_hours'] = null;
-            }
-            
-            return $data;
-        });
-            
-        // Log for debugging purposes
-        \Log::info('Recent time registrations for user ID: ' . $user->id, [
+        event(new TimeRegistrationEvent('recent_time_registrations', [
             'count' => $registrations->count(),
-            'user' => $user->personal_id,
-            'sample' => $formattedRegistrations->first()
-        ]);
+            'user_personal_id' => $user->personal_id
+        ], $user));
             
         return response()->json($formattedRegistrations);
-    }
-    
-    /**
-     * Check for overlapping time registrations.
-     */
-    private function checkOverlappingRegistrations($userId, $date, $clockIn, $clockOut, $excludeId = null)
-    {
-        $query = TimeRegistration::where('user_id', $userId)
-            ->where('date', $date);
-            
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-        
-        // If clock-out is not set, only check for registrations with no clock-out
-        if (!$clockOut) {
-            $overlapping = $query->whereNull('clock_out')->first();
-            if ($overlapping) {
-                return $overlapping;
-            }
-            
-            // Also check if the clock-in time is between any existing registration's clock-in and clock-out
-            return $query->where(function ($q) use ($clockIn) {
-                $q->where('clock_in', '<=', $clockIn)
-                  ->where('clock_out', '>=', $clockIn);
-            })->first();
-        }
-        
-        // Check for any overlapping registrations
-        // We need to wrap all the OR conditions in a single where clause to maintain proper scope
-        return $query->where(function($q) use ($clockIn, $clockOut) {
-            // New registration starts during an existing one
-            $q->where(function ($subQ) use ($clockIn, $clockOut) {
-                $subQ->where('clock_in', '<=', $clockIn)
-                     ->where('clock_out', '>=', $clockIn);
-            })
-            // New registration ends during an existing one
-            ->orWhere(function ($subQ) use ($clockIn, $clockOut) {
-                $subQ->where('clock_in', '<=', $clockOut)
-                     ->where('clock_out', '>=', $clockOut);
-            })
-            // New registration completely contains an existing one
-            ->orWhere(function ($subQ) use ($clockIn, $clockOut) {
-                $subQ->where('clock_in', '>=', $clockIn)
-                     ->where('clock_out', '<=', $clockOut);
-            });
-        })->first();
     }
 }

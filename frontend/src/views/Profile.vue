@@ -37,14 +37,7 @@
                 prepend-icon="mdi-phone"
               ></v-text-field>
 
-              <v-select
-                v-model="profile.department_id"
-                :items="departments"
-                item-title="name"
-                item-value="id"
-                label="Department"
-                prepend-icon="mdi-domain"
-              ></v-select>
+              <!-- Department field removed -->
 
               <v-alert
                 v-if="error"
@@ -103,16 +96,13 @@
 import { defineComponent, ref, onMounted, reactive } from 'vue'
 import axios from 'axios'
 
-interface Department {
-  id: number
-  name: string
-}
+// Department interface removed
 
 interface Profile {
   name: string
   email: string
   phone: string | null
-  department_id: number | null
+  // department_id removed
 }
 
 export default defineComponent({
@@ -122,15 +112,15 @@ export default defineComponent({
     const loading = ref(false)
     const error = ref('')
     const success = ref('')
-    const departments = ref<Department[]>([])
+    // departments ref removed
     const snackbar = ref(false)
     const snackbarText = ref('')
     const snackbarColor = ref('success')
     const profile = reactive<Profile>({
       name: '',
       email: '',
-      phone: null,
-      department_id: null
+      phone: null
+      // department_id removed
     })
 
     const rules = {
@@ -149,7 +139,7 @@ export default defineComponent({
         profile.name = user.name
         profile.email = user.email
         profile.phone = user.phone
-        profile.department_id = user.department_id
+        // department_id assignment removed
       } catch (err) {
         error.value = 'Failed to load profile information'
         console.error('Error fetching profile:', err)
@@ -158,14 +148,7 @@ export default defineComponent({
       }
     }
 
-    const fetchDepartments = async () => {
-      try {
-        const response = await axios.get('/api/departments')
-        departments.value = response.data
-      } catch (err) {
-        console.error('Error fetching departments:', err)
-      }
-    }
+    // fetchDepartments function removed
 
     const saveProfile = async () => {
       loading.value = true
@@ -193,7 +176,7 @@ export default defineComponent({
 
     onMounted(() => {
       fetchProfile()
-      fetchDepartments()
+      // fetchDepartments call removed
     })
 
     return {
@@ -202,7 +185,7 @@ export default defineComponent({
       error,
       success,
       profile,
-      departments,
+      // departments removed
       rules,
       saveProfile,
       snackbar,

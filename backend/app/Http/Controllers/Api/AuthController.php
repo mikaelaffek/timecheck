@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterUserRequest;
-use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
@@ -43,9 +42,7 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        $user = $request->user();
-        $user->load('settings');
-        return new UserResource($user);
+        return response()->json($request->user());
     }
 
     /**
@@ -67,7 +64,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'user' => new UserResource($user),
+            'user' => $user,
             'token' => $token,
         ], 201);
     }

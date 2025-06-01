@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AdminTimeRegistrationResource;
 use Illuminate\Http\Request;
 use App\Models\TimeRegistration;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AdminTimeRegistrationController extends Controller
 {
@@ -16,9 +17,9 @@ class AdminTimeRegistrationController extends Controller
      */
     public function index(Request $request)
     {
-        // Parse date range if provided
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        // Parse date range or default to last 7 days
+        $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
+        $startDate = $request->input('start_date') ?? Carbon::parse($endDate)->subDays(7)->toDateString();
         
         // Log the date range for debugging
         \Log::info('AdminTimeRegistrationController: Date range request', [
@@ -26,72 +27,14 @@ class AdminTimeRegistrationController extends Controller
             'end_date' => $endDate
         ]);
         
-        // Build query for time registrations with user data
-        $query = DB::table('time_registrations as tr')
-            ->join('users as u', 'tr.user_id', '=', 'u.id')
-            ->select(
-                'tr.id', 
-                'tr.user_id', 
-                'tr.date', 
-                'tr.clock_in', 
-                'tr.clock_out', 
-                'tr.total_hours',
-                'tr.latitude',
-                'tr.longitude',
-                'tr.notes',
-                'tr.status',
-                'u.name as user_name',
-                'u.email as user_email',
-                'u.role as user_role'
-            );
-        
-        // If no date range provided, default to last 7 days
-        if (!$startDate || !$endDate) {
-            $endDate = date('Y-m-d');
-            $startDate = date('Y-m-d', strtotime('-7 days'));
-            \Log::info('AdminTimeRegistrationController: Using default date range', [
-                'start_date' => $startDate,
-                'end_date' => $endDate
-            ]);
-        }
-        
-        // Apply date range filter
-        $query->whereBetween('tr.date', [$startDate, $endDate]);
-        
-        // Log the SQL query for debugging
-        \Log::info('AdminTimeRegistrationController: SQL query', [
-            'sql' => $query->toSql(),
-            'bindings' => $query->getBindings()
-        ]);
-        
-        // Get the results
-        $timeRegistrations = $query
-            ->orderBy('tr.date', 'desc')
-            ->orderBy('tr.clock_in', 'desc')
+        // Query with Eloquent and eager load user
+        $registrations = TimeRegistration::with('user')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderByDesc('date')
+            ->orderByDesc('clock_in')
             ->get();
-
-        // Format the data for the frontend
-        $formattedRegistrations = $timeRegistrations->map(function($registration) {
-            return [
-                'id' => $registration->id,
-                'user_id' => $registration->user_id,
-                'date' => $registration->date,
-                'clock_in' => $registration->clock_in,
-                'clock_out' => $registration->clock_out,
-                'total_hours' => $registration->total_hours,
-                'latitude' => $registration->latitude,
-                'longitude' => $registration->longitude,
-                'notes' => $registration->notes,
-                'status' => $registration->status,
-                'user' => [
-                    'id' => $registration->user_id,
-                    'name' => $registration->user_name,
-                    'email' => $registration->user_email,
-                    'role' => $registration->user_role
-                ]
-            ];
-        });
-
-        return response()->json($formattedRegistrations);
+            
+        // Use a resource for formatting
+        return AdminTimeRegistrationResource::collection($registrations);
     }
 }

@@ -110,8 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Locations
     Route::apiResource('locations', LocationController::class);
     
-    // Departments
-    Route::apiResource('departments', DepartmentController::class);
+    // Departments route removed
     Route::get('/locations/nearby', [LocationController::class, 'getNearby']);
     
     // Users (admin only)

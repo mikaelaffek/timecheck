@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use App\Events\TimeRegistrationEvent;
 use App\Models\TimeRegistration;
+use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class TimeRegistrationService
 {
@@ -61,20 +62,23 @@ class TimeRegistrationService
         $now = Carbon::now();
         $today = $now->toDateString();
         
+        // Get user for event dispatching
+        $user = User::find($userId);
+        
         // Generate random coordinates if not provided
         if (!isset($data['latitude']) || !isset($data['longitude'])) {
-            $coordinates = $this->Recent Time Registrations();
+            $coordinates = $this->generateRandomSwedishCoordinates();
             $data['latitude'] = $coordinates['latitude'];
             $data['longitude'] = $coordinates['longitude'];
             
-            Log::info('Generated random coordinates for clock-in', [
-                'user_id' => $userId,
+            // Dispatch event instead of direct logging
+            event(new TimeRegistrationEvent('generated_coordinates', [
                 'coordinates' => $coordinates
-            ]);
+            ], $user));
         }
         
-        // Create the time registration
-        return TimeRegistration::create([
+        // Create the time registration with only the necessary data
+        $timeRegistration = TimeRegistration::create([
             'user_id' => $userId,
             'date' => $today,
             'clock_in' => $now->format('H:i:s'),
@@ -82,6 +86,14 @@ class TimeRegistrationService
             'longitude' => $data['longitude'],
             'status' => 'pending',
         ]);
+        
+        // Dispatch event for the clock-in action
+        event(new TimeRegistrationEvent('user_clocked_in_service', [
+            'date' => $today,
+            'time' => $now->format('H:i:s')
+        ], $user, $timeRegistration));
+        
+        return $timeRegistration;
     }
     
     /**
@@ -95,39 +107,49 @@ class TimeRegistrationService
     {
         $now = Carbon::now();
         
+        // Get user for event dispatching
+        $user = User::find($timeRegistration->user_id);
+        
         // Generate random coordinates if not provided
         if (!isset($data['latitude']) || !isset($data['longitude'])) {
             $coordinates = $this->generateRandomSwedishCoordinates();
             $data['latitude'] = $coordinates['latitude'];
             $data['longitude'] = $coordinates['longitude'];
             
-            Log::info('Generated random coordinates for clock-out', [
-                'user_id' => $timeRegistration->user_id,
-                'time_registration_id' => $timeRegistration->id,
+            // Dispatch event instead of direct logging
+            event(new TimeRegistrationEvent('generated_coordinates_for_clockout', [
                 'coordinates' => $coordinates
-            ]);
+            ], $user, $timeRegistration));
         }
         
         // Update the time registration with clock-out time and coordinates
-        $timeRegistration->clock_out = $now->format('H:i:s');
-        $timeRegistration->latitude = $data['latitude'] ?? $timeRegistration->latitude;
-        $timeRegistration->longitude = $data['longitude'] ?? $timeRegistration->longitude;
+        $timeRegistration->update([
+            'clock_out' => $now->format('H:i:s'),
+            'latitude_end' => $data['latitude'],
+            'longitude_end' => $data['longitude'],
+        ]);
         
         // Calculate and store total hours
         $totalHours = $timeRegistration->calculateTotalHours();
         if ($totalHours !== null) {
             $timeRegistration->total_hours = $totalHours;
             
-            Log::info('Calculated total hours for time registration', [
+            // Dispatch event instead of direct logging
+            event(new TimeRegistrationEvent('calculated_total_hours', [
                 'time_registration_id' => $timeRegistration->id,
-                'user_id' => $timeRegistration->user_id,
                 'clock_in' => $timeRegistration->clock_in,
                 'clock_out' => $timeRegistration->clock_out,
                 'total_hours' => $totalHours
-            ]);
+            ], $user, $timeRegistration));
         }
         
         $timeRegistration->save();
+        
+        // Dispatch event for the clock-out action
+        event(new TimeRegistrationEvent('user_clocked_out_service', [
+            'date' => $timeRegistration->date,
+            'time' => $now->format('H:i:s')
+        ], $user, $timeRegistration));
         
         return $timeRegistration;
     }
@@ -179,5 +201,40 @@ class TimeRegistrationService
             $q->where('clock_in', '>=', $clockIn)
               ->where('clock_out', '<=', $clockOut);
         })->first();
+    }
+    
+    /**
+     * Get the status of a user's time registration for today.
+     * 
+     * @param int $userId
+     * @return array
+     */
+    public function getUserTimeRegistrationStatus(int $userId): array
+    {
+        $activeRegistration = $this->getUserActiveTimeRegistration($userId);
+        
+        // Format the clock-in time as a string for consistent frontend display
+        $clockInTime = null;
+        if ($activeRegistration && $activeRegistration->clock_in) {
+            // Format as HH:MM:SS string
+            $clockInTime = $activeRegistration->clock_in->format('H:i:s');
+        }
+        
+        $duration = null;
+        if ($activeRegistration && $activeRegistration->clock_in && $activeRegistration->clock_out) {
+            $clockIn = Carbon::parse($activeRegistration->clock_in);
+            $clockOut = Carbon::parse($activeRegistration->clock_out);
+            $diffInMinutes = $clockOut->diffInMinutes($clockIn, true);
+            $hours = floor($diffInMinutes / 60);
+            $minutes = $diffInMinutes % 60;
+            $duration = $hours . 'h ' . $minutes . 'm';
+        }
+        
+        return [
+            'clocked_in' => (bool)$activeRegistration,
+            'clock_in_time' => $clockInTime,
+            'duration' => $duration,
+            'time_registration' => $activeRegistration
+        ];
     }
 }

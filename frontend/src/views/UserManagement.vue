@@ -85,13 +85,7 @@
               :rules="[rules.required]"
               required
             ></v-select>
-            <v-select
-              v-model="editedUser.department_id"
-              :items="departments"
-              item-title="name"
-              item-value="id"
-              label="Department"
-            ></v-select>
+            <!-- Department select field removed -->
             <v-text-field
               v-if="!editMode"
               v-model="editedUser.password"
@@ -155,15 +149,12 @@ interface User {
   name: string
   email: string
   role: string
-  department_id: number | null
+  // department_id removed
   password?: string
   password_confirmation?: string
 }
 
-interface Department {
-  id: number
-  name: string
-}
+// Department interface removed
 
 export default defineComponent({
   name: 'UserManagement',
@@ -171,7 +162,7 @@ export default defineComponent({
     const loading = ref(false)
     const search = ref('')
     const users = ref<User[]>([])
-    const departments = ref<Department[]>([])
+    // departments ref removed
     const userDialog = ref(false)
     const deleteDialog = ref(false)
     const editMode = ref(false)
@@ -194,7 +185,7 @@ export default defineComponent({
       name: '',
       email: '',
       role: 'employee',
-      department_id: null,
+      // department_id removed
       password: '',
       password_confirmation: ''
     }
@@ -223,14 +214,7 @@ export default defineComponent({
       }
     }
     
-    const fetchDepartments = async () => {
-      try {
-        const response = await axios.get('/api/departments')
-        departments.value = response.data
-      } catch (error) {
-        console.error('Error fetching departments:', error)
-      }
-    }
+    // fetchDepartments function removed
     
     const getRoleColor = (role: string) => {
       switch (role) {
@@ -265,8 +249,8 @@ export default defineComponent({
             personal_id: editedUser.personal_id,
             name: editedUser.name,
             email: editedUser.email,
-            role: editedUser.role,
-            department_id: editedUser.department_id
+            role: editedUser.role
+            // department_id removed
           })
         } else {
           // Create new user
@@ -299,14 +283,14 @@ export default defineComponent({
     
     onMounted(() => {
       fetchUsers()
-      fetchDepartments()
+      // fetchDepartments call removed
     })
     
     return {
       loading,
       search,
       users,
-      departments,
+      // departments removed
       headers,
       roles,
       userDialog,

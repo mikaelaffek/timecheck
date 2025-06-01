@@ -339,10 +339,11 @@ const fetchRecentRegistrations = async () => {
 // Check if user is clocked in
 const checkClockInStatus = async () => {
   try {
+    // Use the correct endpoint for checking clock-in status
     const data = await get('/api/check-clock-in-status')
-    if (data) {
-      isClockedIn.value = data.is_clocked_in || data.clocked_in
-      lastClockIn.value = data.last_clock_in || (data.time_registration ? data.time_registration.clock_in : null)
+    if (data && data.status) {
+      isClockedIn.value = data.status.clocked_in
+      lastClockIn.value = data.status.clock_in_time
     }
   } catch (error) {
     // Fallback to checking recent registrations if the API call fails

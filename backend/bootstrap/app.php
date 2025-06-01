@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Providers\AuthServiceProvider;
+use App\Providers\EventServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withProviders([
         AuthServiceProvider::class,
+        EventServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         // Register the CORS middleware for all routes
