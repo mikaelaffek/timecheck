@@ -340,10 +340,21 @@ const fetchRecentRegistrations = async () => {
 const checkClockInStatus = async () => {
   try {
     // Use the correct endpoint for checking clock-in status
-    const data = await get('/api/check-clock-in-status')
-    if (data && data.status) {
-      isClockedIn.value = data.status.clocked_in
-      lastClockIn.value = data.status.clock_in_time
+    const response = await get('/api/check-clock-in-status')
+    console.log('Clock-in status response:', response)
+    
+    // Handle the response from the API
+    // The API returns: { status: { clocked_in, time_registration, clock_in_time, duration } }
+    if (response && response.status) {
+      // Direct access to status object from the API
+      isClockedIn.value = response.status.clocked_in || false
+      lastClockIn.value = response.status.clock_in_time || null
+      console.log('Clock-in status set to:', isClockedIn.value)
+    } else if (response && response.data && response.data.status) {
+      // Fallback for when the response is wrapped in a data object
+      isClockedIn.value = response.data.status.clocked_in || false
+      lastClockIn.value = response.data.status.clock_in_time || null
+      console.log('Clock-in status set to (from data wrapper):', isClockedIn.value)
     }
   } catch (error) {
     // Fallback to checking recent registrations if the API call fails

@@ -13,11 +13,13 @@ use App\Http\Requests\TimeRegistration\StoreTimeRegistrationRequest;
 use App\Http\Requests\TimeRegistration\UpdateTimeRegistrationRequest;
 use App\Http\Resources\RecentTimeRegistrationResource;
 use App\Http\Resources\TimeRegistrationResource;
+use App\Http\Resources\TimeRegistrationStatusResource;
 use App\Models\TimeRegistration;
 use App\Models\User;
 use App\Services\TimeRegistrationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 
@@ -62,9 +64,11 @@ class TimeRegistrationController extends Controller
             $query->where('status', $request->status);
         }
         
-        return $query->orderBy('date', 'desc')
+        $timeRegistrations = $query->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->paginate($request->per_page ?? 15);
+            
+        return TimeRegistrationResource::collection($timeRegistrations);
     }
 
     /**
@@ -78,7 +82,7 @@ class TimeRegistrationController extends Controller
         
         // Check if user has permission to create for other users
         if ($userId !== $user->id && !$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
         
         // Check for overlapping time registrations
@@ -93,7 +97,7 @@ class TimeRegistrationController extends Controller
             return response()->json([
                 'message' => 'Time registration overlaps with existing registration',
                 'overlapping' => $overlapping
-            ], 422);
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         
         $timeRegistration = TimeRegistration::create([
@@ -117,10 +121,10 @@ class TimeRegistrationController extends Controller
         
         // Check if user has permission to view this registration
         if ($timeRegistration->user_id !== $user->id && !$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
         
-        return response()->json($timeRegistration);
+        return response()->json((new TimeRegistrationResource($timeRegistration))->resolve());
     }
 
     /**
@@ -133,12 +137,12 @@ class TimeRegistrationController extends Controller
         
         // Check if user has permission to update this registration
         if ($timeRegistration->user_id !== $user->id && !$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
         
         // Only admins and managers can change status
         if ($request->has('status') && !$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized to change status'], 403);
+            return response()->json(['message' => 'Unauthorized to change status'], Response::HTTP_FORBIDDEN);
         }
         
         // Check for overlapping time registrations if changing date or times
@@ -159,32 +163,15 @@ class TimeRegistrationController extends Controller
                 return response()->json([
                     'message' => 'Time registration overlaps with existing registration',
                     'overlapping' => $overlapping
-                ], 422);
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
         }
         
         $timeRegistration->update($request->all());
         
-        return response()->json($timeRegistration);
+        return response()->json((new TimeRegistrationResource($timeRegistration))->resolve());
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Request $request, TimeRegistration $timeRegistration)
-    {
-        $user = $request->user();
-        
-        // Check if user has permission to delete this registration
-        if ($timeRegistration->user_id !== $user->id && !$user->isAdmin() && !$user->isManager()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        
-        $timeRegistration->delete();
-        
-        return response()->json(['message' => 'Time registration deleted']);
-    }
-    
     /**
      * Clock in the user.
      */
@@ -206,7 +193,7 @@ class TimeRegistrationController extends Controller
             return response()->json([
                 'message' => 'You are already clocked in',
                 'time_registration' => $activeRegistration
-            ], 422);
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         
         // Use the service to clock in the user
@@ -233,28 +220,16 @@ class TimeRegistrationController extends Controller
         // Get status from service
         $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
         $activeRegistration = $status['time_registration'];
-        $clockInTime = $status['clock_in_time'];
-            
+        
         if ($activeRegistration) {
             event(new TimeRegistrationEvent('user_clocked_in', [], $user, $activeRegistration));
-            
-            return response()->json([
-                'status' => [
-                    'clocked_in' => true,
-                    'time_registration' => $activeRegistration,
-                    'clock_in_time' => $clockInTime
-                ]
-            ]);
+        } else {
+            event(new TimeRegistrationEvent('user_not_clocked_in', [], $user));
         }
         
-        event(new TimeRegistrationEvent('user_not_clocked_in', [], $user));
-        
-        return response()->json([
-            'status' => [
-                'clocked_in' => false,
-                'clock_in_time' => null
-            ]
-        ]);
+        // Return the response in the format the frontend expects
+        // Don't use resolve() here since the frontend expects the data wrapper
+        return response()->json(new TimeRegistrationStatusResource($status));
     }
     
     /**
@@ -270,7 +245,7 @@ class TimeRegistrationController extends Controller
         $activeRegistration = $this->timeRegistrationService->getUserActiveTimeRegistration($user->id);
             
         if (!$activeRegistration) {
-            return response()->json(['message' => 'No active clock-in found'], 404);
+            return response()->json(['message' => 'No active clock-in found'], Response::HTTP_NOT_FOUND);
         }
         
         // Use the service to clock out the user
@@ -292,14 +267,7 @@ class TimeRegistrationController extends Controller
         // Get the user's time registration status from the service
         $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
         
-        return response()->json([
-            'status' => [
-                'clocked_in' => $status['clocked_in'],
-                'time_registration' => $status['time_registration'],
-                'clock_in_time' => $status['clock_in_time'],
-                'duration' => $status['duration'],
-            ]
-        ]);
+        return response()->json((new TimeRegistrationStatusResource($status))->resolve());
     }
     
     /**

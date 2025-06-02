@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\AdminTimeRegistrationEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminTimeRegistration\IndexAdminTimeRegistrationRequest;
 use App\Http\Resources\AdminTimeRegistrationResource;
-use Illuminate\Http\Request;
 use App\Models\TimeRegistration;
-use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Response;
 
 class AdminTimeRegistrationController extends Controller
 {
@@ -15,17 +16,20 @@ class AdminTimeRegistrationController extends Controller
      * Get all time registrations for admin view
      * This endpoint is specifically for the admin dashboard
      */
-    public function index(Request $request)
+    public function index(IndexAdminTimeRegistrationRequest $request)
     {
+        $user = $request->user();
+        
         // Parse date range or default to last 7 days
         $endDate = $request->input('end_date') ?? Carbon::today()->toDateString();
         $startDate = $request->input('start_date') ?? Carbon::parse($endDate)->subDays(7)->toDateString();
         
-        // Log the date range for debugging
-        \Log::info('AdminTimeRegistrationController: Date range request', [
+        // Dispatch event for logging
+        event(new AdminTimeRegistrationEvent('admin_time_registrations_request', [
             'start_date' => $startDate,
-            'end_date' => $endDate
-        ]);
+            'end_date' => $endDate,
+            'user_personal_id' => $user->personal_id
+        ], $user));
         
         // Query with Eloquent and eager load user
         $registrations = TimeRegistration::with('user')
@@ -34,7 +38,13 @@ class AdminTimeRegistrationController extends Controller
             ->orderByDesc('clock_in')
             ->get();
             
-        // Use a resource for formatting
-        return AdminTimeRegistrationResource::collection($registrations);
+        // Dispatch event for successful retrieval
+        event(new AdminTimeRegistrationEvent('admin_time_registrations_retrieved', [
+            'count' => $registrations->count(),
+            'date_range' => "$startDate to $endDate"
+        ], $user, $registrations->toArray()));
+        
+        // Use a resource for formatting and resolve to remove data wrapper
+        return AdminTimeRegistrationResource::collection($registrations)->resolve();
     }
 }

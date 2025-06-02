@@ -1,0 +1,1061 @@
+{
+	"info": {
+		"_postman_id": "a8e5f7d2-3b9c-4d7e-9f5c-6a2b8d3e1c4f",
+		"name": "Timetjek API",
+		"description": "A collection of API endpoints for the Timetjek time registration application.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"personal_id\": \"870531-4139\",\n    \"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						},
+						"description": "Login with Swedish personal ID format (YYMMDD-XXXX) and password."
+					},
+					"response": []
+				},
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New User\",\n    \"personal_id\": \"950101-1234\",\n    \"password\": \"password\",\n    \"password_confirmation\": \"password\",\n    \"email\": \"newuser@example.com\",\n    \"role\": \"employee\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"register"
+							]
+						},
+						"description": "Register a new user with Swedish personal ID format."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate the current token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/user",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user"
+							]
+						},
+						"description": "Get the currently authenticated user's information."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, logout, and user information."
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/user/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"profile"
+							]
+						},
+						"description": "Update the current user's profile information."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"password\",\n    \"password\": \"new_password\",\n    \"password_confirmation\": \"new_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/user/password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"password"
+							]
+						},
+						"description": "Update the current user's password."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/user/settings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"settings"
+							]
+						},
+						"description": "Get the current user's settings."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"theme\": \"dark\",\n    \"notifications_enabled\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/user/settings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"settings"
+							]
+						},
+						"description": "Update the current user's settings."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Get all users (admin only)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"1"
+							]
+						},
+						"description": "Get a specific user by ID (admin only)."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New User\",\n    \"personal_id\": \"950101-1234\",\n    \"password\": \"password\",\n    \"password_confirmation\": \"password\",\n    \"email\": \"newuser@example.com\",\n    \"role\": \"employee\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new user (admin only)."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated User\",\n    \"email\": \"updated@example.com\",\n    \"role\": \"manager\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"1"
+							]
+						},
+						"description": "Update a specific user (admin only)."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"1"
+							]
+						},
+						"description": "Delete a specific user (admin only)."
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints for profile updates, password changes, and admin user management."
+		},
+		{
+			"name": "Time Registrations",
+			"item": [
+				{
+					"name": "Get Time Registration Status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"status"
+							]
+						},
+						"description": "Get the current time registration status for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Clock In",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/clock-in",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"clock-in"
+							]
+						},
+						"description": "Clock in the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Clock Out",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/clock-out",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"clock-out"
+							]
+						},
+						"description": "Clock out the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Clock In Status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/check-clock-in-status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"check-clock-in-status"
+							]
+						},
+						"description": "Check if the authenticated user is currently clocked in."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recent Time Registrations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/recent-time-registrations?limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recent-time-registrations"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Get recent time registrations for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Time Registrations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations"
+							]
+						},
+						"description": "Get all time registrations for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Time Registration by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"1"
+							]
+						},
+						"description": "Get a specific time registration by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Time Registration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2025-06-02\",\n    \"clock_in\": \"09:00:00\",\n    \"clock_out\": \"17:00:00\",\n    \"location_id\": 1,\n    \"notes\": \"Regular workday\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations"
+							]
+						},
+						"description": "Create a new time registration."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Time Registration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"date\": \"2025-06-02\",\n    \"clock_in\": \"08:30:00\",\n    \"clock_out\": \"16:30:00\",\n    \"location_id\": 1,\n    \"notes\": \"Updated workday\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"1"
+							]
+						},
+						"description": "Update a specific time registration."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Time Registration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/time-registrations/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"time-registrations",
+								"1"
+							]
+						},
+						"description": "Delete a specific time registration."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin Time Registrations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/time-registrations?start_date=2025-05-26&end_date=2025-06-02",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"time-registrations"
+							],
+							"query": [
+								{
+									"key": "start_date",
+									"value": "2025-05-26"
+								},
+								{
+									"key": "end_date",
+									"value": "2025-06-02"
+								}
+							]
+						},
+						"description": "Get all time registrations for admin view (admin/manager only)."
+					},
+					"response": []
+				}
+			],
+			"description": "Time registration endpoints for clock-in/out, status, and CRUD operations."
+		},
+		{
+			"name": "Test Endpoints",
+			"item": [
+				{
+					"name": "API Test",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test"
+							]
+						},
+						"description": "Simple test endpoint to verify API routing."
+					},
+					"response": []
+				},
+				{
+					"name": "Test Time Registrations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test-time-registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-time-registrations"
+							]
+						},
+						"description": "Test endpoint for time registrations."
+					},
+					"response": []
+				},
+				{
+					"name": "Test Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"personal_id\": \"870531-4139\",\n    \"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/test-login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-login"
+							]
+						},
+						"description": "Test login endpoint (direct DB access)."
+					},
+					"response": []
+				}
+			],
+			"description": "Test endpoints for API verification and debugging."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-extract auth token from login response",
+					"if (pm.response.code === 200 && pm.request.url.toString().includes('/api/login')) {",
+					"    const responseJson = pm.response.json();",
+					"    if (responseJson.token) {",
+					"        pm.environment.set('auth_token', responseJson.token);",
+					"        console.log('Auth token saved to environment variable: auth_token' + responseJson.token);",
+					"    }",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string",
+			"description": "Base URL for the Timetjek API"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string",
+			"description": "Authentication token received after login"
+		}
+	]
+}

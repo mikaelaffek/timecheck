@@ -55,14 +55,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the schedules for the user.
-     */
-    public function schedules(): HasMany
-    {
-        return $this->hasMany(Schedule::class);
-    }
-
-    /**
      * Get the settings for the user.
      */
     public function settings(): HasOne

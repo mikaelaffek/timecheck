@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterUserRequest;
+use App\Http\Resources\AuthResource;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserSetting;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,9 +24,10 @@ class AuthController extends Controller
         $user = $request->authenticate();
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Using resolve() to remove the data wrapper
         return response()->json([
-            'user' => $user,
-            'token' => $token,
+            'user' => (new UserResource($user))->resolve(),
+            'token' => $token
         ]);
     }
 
@@ -34,7 +38,9 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -42,7 +48,8 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        // Using resolve() to remove the data wrapper and return just the user object
+        return response()->json((new UserResource($request->user()->load('settings')))->resolve());
     }
 
     /**
@@ -62,10 +69,14 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth-token')->plainTextToken;
+        
+        // Load the settings relationship for the resource
+        $user->load('settings');
 
+        // Using resolve() to remove the data wrapper
         return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 201);
+            'user' => (new UserResource($user))->resolve(),
+            'token' => $token
+        ], Response::HTTP_CREATED);
     }
 }

@@ -107,11 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Schedule, Report, and OvertimeRule routes have been removed
     
-    // Locations
-    Route::apiResource('locations', LocationController::class);
-    
-    // Departments route removed
-    Route::get('/locations/nearby', [LocationController::class, 'getNearby']);
+    // Location routes removed - controller not used in the application
+    // The Location model is still used in relationships
     
     // Users (admin only)
     Route::apiResource('users', UserController::class);
