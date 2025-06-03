@@ -1,36 +1,92 @@
-# Timetjek - Time Tracking Application
+# Timetjek - Employee Time Tracking Application
 
-A modern time tracking application built with Laravel 11 and Vue 3.
+## What is Timetjek?
 
-## Features
+Timetjek is a modern web application for tracking employee work hours. It allows employees to clock in/out and managers to review time registrations. The application features a clean, intuitive interface built with Vuetify components.
 
-- **Correct Working Hours**: Easily correct registered working hours with a few clicks. Fix clock-in/out times and breaks.
-- **Show Deviations from Schedule**: Timetjek clearly shows if a time registration differs from scheduled work shifts. Administrators can choose whether this should be corrected automatically, manually by staff or administrators, or if you want to be notified of the deviation.
-- **Overtime Rules**: You decide if and which overtime rules apply to your staff, and these can automatically be included in the staff's salary documentation if desired.
-- **Export Time Reports and Staff Registry**: Download time reports containing all working hours for all staff in PDF or Excel format. Export a complete staff registry to send to the Tax Agency during workplace inspections.
-- **User Management**: Add and manage users with different permission levels
-- **Mobile Responsive**: Access from any device
+## Key Features
 
-## Technical Stack
+- Simple clock in/out functionality from the dashboard
+- View recent time registrations
+- Edit time entries (adjust clock in/out times)
+- User authentication with personal ID and password
+- Admin view for managing employee time records
+- Profile and password management
 
-- **Backend**: PHP 8.3 with Laravel 11
-- **Frontend**: TypeScript with Vue 3 (Vite)
-- **Database**: MariaDB
-- **API**: REST principles for client-server communication
+## Technology Stack
 
-## Installation
+### Backend
+- Laravel 11 (PHP 8.3)
+- MariaDB database
+- Laravel Sanctum for API authentication
+- RESTful API architecture
+
+### Frontend
+- Vue 3 with Composition API
+- TypeScript
+- Vuetify 3 for UI components
+- Pinia for state management
+- Vue Router for navigation
+
+## Docker Installation
 
 ### Prerequisites
-- PHP 8.3+
-- Composer
-- Node.js & npm
-- MariaDB
+- Docker and Docker Compose
 
-### Setup Instructions
-1. Clone the repository
-2. Set up backend (Laravel)
-3. Set up frontend (Vue)
-4. Configure database
-5. Run the application
+### Installation Steps
 
-Detailed installation instructions are available in the backend and frontend directories.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd timetjek
+   ```
+
+2. **Start Docker containers**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Set up backend**
+   ```bash
+   # Install dependencies
+   docker-compose exec backend composer install
+   
+   # Generate application key
+   docker-compose exec backend php artisan key:generate
+   
+   # Run migrations and seed database
+   docker-compose exec backend php artisan migrate --seed
+   ```
+
+4. **Set up frontend**
+   ```bash
+   # Install dependencies
+   docker-compose exec frontend npm install
+   
+   # Build for production
+   docker-compose exec frontend npm run build
+   # OR for development with hot reload
+   docker-compose exec frontend npm run dev
+   ```
+
+5. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+
+### Default Login
+```
+Personal ID: 870531-4139  # Admin user (previously ADMIN001)
+Password: password
+
+# Other available test users:
+# 790215-3391 (Manager, previously MGR001)
+# 850612-5578 (Employee, previously EMP001)
+# 890423-6644 (Employee, previously EMP002)
+# 920718-4433 (Employee, previously EMP003)
+```
+
+## Important Notes
+
+- **Always use Docker**: This application must be run using Docker containers. Running directly on the host machine will cause dependency issues.
+- **API Testing**: A Postman collection is included in the root directory for testing API endpoints.
+- **Sample Data**: The database seeder creates test users and time registrations for demonstration.

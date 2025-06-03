@@ -11,7 +11,7 @@ const Settings = () => import('../views/Settings.vue')
 const Profile = () => import('../views/Profile.vue')
 const ChangePassword = () => import('../views/ChangePassword.vue')
 const Preferences = () => import('../views/Preferences.vue')
-const UserManagement = () => import('../views/UserManagement.vue')
+// UserManagement component has been removed
 const NotFound = () => import('../views/NotFound.vue')
 
 const routes: Array<RouteRecordRaw> = [
@@ -69,12 +69,7 @@ const routes: Array<RouteRecordRaw> = [
     component: Preferences,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/users',
-    name: 'UserManagement',
-    component: UserManagement,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
+  // UserManagement route has been removed
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

@@ -79,8 +79,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, getCurrentInstance } from 'vue'
-import axios from 'axios'
+import { defineComponent, ref, reactive } from 'vue'
+import { useApi } from '@/composables/useApi'
 
 interface PasswordForm {
   current_password: string
@@ -92,9 +92,10 @@ export default defineComponent({
   name: 'ChangePassword',
   setup() {
     const valid = ref(false)
-    const loading = ref(false)
-    const error = ref('')
     const success = ref('')
+    const form = ref(null)
+    const api = useApi()
+    
     const passwords = reactive<PasswordForm>({
       current_password: '',
       new_password: '',
@@ -106,65 +107,35 @@ export default defineComponent({
       minLength: (v: string) => v.length >= 8 || 'Password must be at least 8 characters',
       passwordMatch: (v: string) => v === passwords.new_password || 'Passwords do not match'
     }
-
-    // Reference to the form
-    const form = ref(null)
     
     const changePassword = async () => {
-      loading.value = true
-      error.value = ''
       success.value = ''
       
-      try {
-        await axios.put('/api/user/password', {
-          current_password: passwords.current_password,
-          password: passwords.new_password,
-          password_confirmation: passwords.confirm_password
-        })
-        
-        // Show success message
-        success.value = 'Password updated successfully!'
-        
-        // Clear the form
+      if (!form.value || !form.value.validate()) {
+        return
+      }
+
+      const result = await api.put('/api/user/password', {
+        current_password: passwords.current_password,
+        password: passwords.new_password
+      }, { showSuccessNotification: true, successMessage: 'Password changed successfully' })
+
+      if (result) {
+        // Reset form fields
         passwords.current_password = ''
         passwords.new_password = ''
         passwords.confirm_password = ''
-        
-        // Reset validation state to prevent red fields after success
-        valid.value = true
-        
-        // Reset form validation
         if (form.value) {
-          setTimeout(() => {
-            form.value.resetValidation()
-          }, 100)
+          form.value.reset()
         }
-        
-        // Show a snackbar notification
-        const { $root } = getCurrentInstance() || {}
-        if ($root) {
-          $root.$emit('show-snackbar', {
-            text: 'Password changed successfully',
-            color: 'success',
-            timeout: 3000
-          })
-        }
-      } catch (err) {
-        if (err.response && err.response.data && err.response.data.message) {
-          error.value = err.response.data.message
-        } else {
-          error.value = 'Failed to update password'
-        }
-        console.error('Error updating password:', err)
-      } finally {
-        loading.value = false
+        success.value = 'Password changed successfully'
       }
     }
 
     return {
       valid,
-      loading,
-      error,
+      loading: api.loading,
+      error: api.snackbar.text,
       success,
       passwords,
       rules,

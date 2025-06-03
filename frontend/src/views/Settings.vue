@@ -349,8 +349,8 @@ export default defineComponent({
       try {
         const data = await put('/api/user/password', {
           current_password: password.value.current,
-          new_password: password.value.new,
-          new_password_confirmation: password.value.confirm
+          password: password.value.new,
+          password_confirmation: password.value.confirm
         }, {
           showSuccessNotification: true,
           successMessage: 'Password changed successfully'

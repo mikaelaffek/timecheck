@@ -77,14 +77,13 @@
 
         <!-- Schedule and Reports menu items have been removed -->
 
-        <!-- Time Admin (Employees) menu item removed -->
-
-        <v-list-item v-if="isAdmin" @click="navigateTo('/users')" link class="py-2">
+        <!-- Admin Time Registrations menu item -->
+        <v-list-item v-if="isAdmin" @click="navigateTo('/admin/time-registrations')" link class="py-2">
           <v-list-item-icon>
-            <v-icon>mdi-account-cog</v-icon>
+            <v-icon>mdi-account-clock</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>Admin</v-list-item-title>
+            <v-list-item-title>Admin Time</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
 
