@@ -19,63 +19,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Simple test endpoint to verify API routing
-Route::get('/test', function() {
-    return response()->json([
-        'status' => 'success',
-        'message' => 'API is working!',
-        'time' => now()->toDateTimeString()
-    ]);
-});
-
-// Test endpoint for time registrations
-Route::get('/test-time-registrations', function() {
-    // Get all time registrations
-    $timeRegistrations = \App\Models\TimeRegistration::orderBy('date', 'desc')
-        ->orderBy('clock_in', 'desc')
-        ->limit(5)
-        ->get();
-    
-    return response()->json([
-        'status' => 'success',
-        'count' => $timeRegistrations->count(),
-        'data' => $timeRegistrations
-    ]);
-});
-
-// Test endpoint for schedules has been removed
-
-// Test login endpoint (direct DB access)
-Route::post('/test-login', function(\Illuminate\Http\Request $request) {
-    $request->validate([
-        'personal_id' => 'required|string',
-        'password' => 'required|string',
-    ]);
-
-    $user = \App\Models\User::where('personal_id', $request->personal_id)->first();
-
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Invalid credentials',
-            'debug' => [
-                'personal_id_exists' => (bool)$user,
-                'personal_id_provided' => $request->personal_id,
-                'password_provided' => $request->password,
-                'password_hash' => $user ? $user->password : null
-            ]
-        ], 401);
-    }
-
-    $token = $user->createToken('auth-token')->plainTextToken;
-
-    return response()->json([
-        'status' => 'success',
-        'user' => $user,
-        'token' => $token,
-    ]);
-});
-
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
