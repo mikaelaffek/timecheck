@@ -16,7 +16,7 @@ use App\Http\Resources\TimeRegistrationResource;
 use App\Http\Resources\TimeRegistrationStatusResource;
 use App\Models\TimeRegistration;
 use App\Models\User;
-use App\Services\TimeRegistrationService;
+use App\Traits\TimeRegistrationTrait;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,18 +25,7 @@ use Illuminate\Support\Facades\Config;
 
 class TimeRegistrationController extends Controller
 {
-    /**
-     * @var TimeRegistrationService
-     */
-    protected $timeRegistrationService;
-    
-    /**
-     * Create a new controller instance.
-     */
-    public function __construct(TimeRegistrationService $timeRegistrationService)
-    {
-        $this->timeRegistrationService = $timeRegistrationService;
-    }
+    use TimeRegistrationTrait;
     /**
      * Display a listing of the resource.
      */
@@ -182,7 +171,7 @@ class TimeRegistrationController extends Controller
         $today = $now->toDateString();
         
         // Check if user is already clocked in
-        $activeRegistration = $this->timeRegistrationService->getUserActiveTimeRegistration($user->id);
+        $activeRegistration = $this->getUserActiveTimeRegistration($user->id);
             
         event(new TimeRegistrationEvent('checking_already_clocked_in', [
             'date' => $today,
@@ -192,17 +181,17 @@ class TimeRegistrationController extends Controller
         if ($activeRegistration) {
             return response()->json([
                 'message' => 'You are already clocked in',
-                'time_registration' => $activeRegistration
+                'time_registration' => new TimeRegistrationResource($activeRegistration)
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         
-        // Use the service to clock in the user
-        $timeRegistration = $this->timeRegistrationService->clockInUser(
+        // Use the trait method to clock in the user
+        $timeRegistration = $this->clockInUser(
             $user->id,
             $request->only(['latitude', 'longitude'])
         );
         
-        return response()->json($timeRegistration, 201);
+        return response()->json((new TimeRegistrationResource($timeRegistration))->resolve(), Response::HTTP_CREATED);
     }
     
     /**
@@ -217,8 +206,8 @@ class TimeRegistrationController extends Controller
             'today' => $today
         ], $user));
         
-        // Get status from service
-        $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
+        // Get status using trait method
+        $status = $this->getUserTimeRegistrationStatus($user->id);
         $activeRegistration = $status['time_registration'];
         
         if ($activeRegistration) {
@@ -241,20 +230,20 @@ class TimeRegistrationController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
         
-        // Find the active time registration using service
-        $activeRegistration = $this->timeRegistrationService->getUserActiveTimeRegistration($user->id);
+        // Find the active time registration using trait method
+        $activeRegistration = $this->getUserActiveTimeRegistration($user->id);
             
         if (!$activeRegistration) {
             return response()->json(['message' => 'No active clock-in found'], Response::HTTP_NOT_FOUND);
         }
         
-        // Use the service to clock out the user
-        $activeRegistration = $this->timeRegistrationService->clockOutUser(
+        // Use the trait method to clock out the user
+        $activeRegistration = $this->clockOutUser(
             $activeRegistration,
             $request->only(['latitude', 'longitude'])
         );
         
-        return response()->json($activeRegistration);
+        return response()->json((new TimeRegistrationResource($activeRegistration))->resolve(), Response::HTTP_OK);
     }
     
     /**
@@ -264,10 +253,10 @@ class TimeRegistrationController extends Controller
     {
         $user = $request->user();
         
-        // Get the user's time registration status from the service
-        $status = $this->timeRegistrationService->getUserTimeRegistrationStatus($user->id);
+        // Get the user's time registration status using trait method
+        $status = $this->getUserTimeRegistrationStatus($user->id);
         
-        return response()->json((new TimeRegistrationStatusResource($status))->resolve());
+        return response()->json((new TimeRegistrationStatusResource($status))->resolve(), Response::HTTP_OK);
     }
     
     /**
@@ -285,14 +274,12 @@ class TimeRegistrationController extends Controller
             ->limit($limit)
             ->get();
             
-        // Use the RecentTimeRegistrationResource to format the data
-        $formattedRegistrations = RecentTimeRegistrationResource::collection($registrations)->resolve();
-            
         event(new TimeRegistrationEvent('recent_time_registrations', [
             'count' => $registrations->count(),
             'user_personal_id' => $user->personal_id
         ], $user));
             
-        return response()->json($formattedRegistrations);
+        // Use the RecentTimeRegistrationResource to format the data and resolve to remove data wrapper
+        return response()->json(RecentTimeRegistrationResource::collection($registrations)->resolve(), Response::HTTP_OK);
     }
 }
