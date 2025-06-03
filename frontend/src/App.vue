@@ -77,14 +77,7 @@
 
         <!-- Schedule and Reports menu items have been removed -->
 
-        <v-list-item v-if="isAdmin || isManager" @click="navigateTo('/admin/time-registrations')" link class="py-2">
-          <v-list-item-icon>
-            <v-icon>mdi-account-group</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Employees</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
+        <!-- Time Admin (Employees) menu item removed -->
 
         <v-list-item v-if="isAdmin" @click="navigateTo('/users')" link class="py-2">
           <v-list-item-icon>
