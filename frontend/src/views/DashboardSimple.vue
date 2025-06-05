@@ -385,7 +385,7 @@ export default {
     const clockIn = async () => {
       clockInLoading.value = true
       try {
-        const data = await post('/api/time-registrations/clock-in', {}, {
+        const data = await post('/api/time-registrations/clock-in', { latitude: 59.3293, longitude: 18.0686 }, {
           showSuccessNotification: true,
           successMessage: 'Successfully clocked in'
         })
